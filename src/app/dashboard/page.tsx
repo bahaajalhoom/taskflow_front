@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import { Card, Row, Col, Tag, Button, Typography, Progress, Avatar, Tooltip, Input } from 'antd';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage } from '@/context/LanguageContext';
+import { useLanguage, TranslationKey } from '@/context/LanguageContext';
 import { DataService } from '@/services/dataStore';
 import { Project, DashboardMetrics } from '@/types';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
@@ -82,7 +82,7 @@ interface ProjectCardProps {
   isRTL: boolean;
   onOpenTeam: (project: Project) => void;
   formatDateLocalized: (date: string) => string;
-  t: (key: any) => string;
+  t: (key: TranslationKey) => string;
 }
 
 // ============================================================================

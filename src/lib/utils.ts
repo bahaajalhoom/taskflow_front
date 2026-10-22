@@ -6,11 +6,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export type ValidDateInput = string | Date | number | { toDate?: () => Date; seconds?: number } | null | undefined;
+
 /**
  * SRS Rule 10.1 & 13:
  * Overdue means due date before the current date in the application timezone and status not Done.
  */
-export function isTaskOverdue(dueDate: any, status: TaskStatus): boolean {
+export function isTaskOverdue(dueDate: ValidDateInput, status: TaskStatus): boolean {
   if (!dueDate || status === 'done') return false;
 
   const today = new Date();
@@ -24,12 +26,12 @@ export function isTaskOverdue(dueDate: any, status: TaskStatus): boolean {
     } else {
       due = new Date(dueDate);
     }
-  } else if (dueDate && typeof dueDate.toDate === 'function') {
-    due = dueDate.toDate();
-  } else if (dueDate && typeof dueDate.seconds === 'number') {
-    due = new Date(dueDate.seconds * 1000);
+  } else if (dueDate && typeof (dueDate as any).toDate === 'function') {
+    due = (dueDate as any).toDate();
+  } else if (dueDate && typeof (dueDate as any).seconds === 'number') {
+    due = new Date((dueDate as any).seconds * 1000);
   } else {
-    due = new Date(dueDate);
+    due = new Date(dueDate as any);
   }
 
   if (isNaN(due.getTime())) return false;
@@ -39,21 +41,21 @@ export function isTaskOverdue(dueDate: any, status: TaskStatus): boolean {
 }
 
 /**
- * Robust date formatting supporting Firestore Timestamps, ISO strings, and dates
+ * Robust date formatting supporting timestamps, ISO strings, and Date objects
  */
-export function formatDate(dateVal: any): string {
+export function formatDate(dateVal: ValidDateInput): string {
   if (!dateVal) return 'Recently';
 
   try {
     let d: Date;
 
-    // Handle Firestore Timestamp object with .toDate()
-    if (typeof dateVal.toDate === 'function') {
-      d = dateVal.toDate();
+    // Handle object with .toDate()
+    if (typeof (dateVal as any).toDate === 'function') {
+      d = (dateVal as any).toDate();
     }
     // Handle raw { seconds, nanoseconds } object
-    else if (typeof dateVal.seconds === 'number') {
-      d = new Date(dateVal.seconds * 1000);
+    else if (typeof (dateVal as any).seconds === 'number') {
+      d = new Date((dateVal as any).seconds * 1000);
     }
     // Handle YYYY-MM-DD string
     else if (typeof dateVal === 'string') {

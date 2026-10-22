@@ -52,6 +52,43 @@ async function getProjectMembersMap(projectId: string): Promise<{
   return { memberIds, memberDetails };
 }
 
+async function getProjectsMembersBatchMap(projectIds: string[]): Promise<
+  Record<string, { memberIds: string[]; memberDetails: Record<string, ProjectMemberDetail> }>
+> {
+  if (projectIds.length === 0) return {};
+
+  const placeholders = projectIds.map(() => '?').join(',');
+  const rows = await dbAll<DBMemberRow & { project_id: string }>(
+    `SELECT pm.project_id, pm.user_id, pm.role, pm.joined_at, u.email, u.display_name
+     FROM project_members pm
+     INNER JOIN users u ON pm.user_id = u.id
+     WHERE pm.project_id IN (${placeholders})`,
+    projectIds
+  );
+
+  const result: Record<string, { memberIds: string[]; memberDetails: Record<string, ProjectMemberDetail> }> = {};
+  for (const pid of projectIds) {
+    result[pid] = { memberIds: [], memberDetails: {} };
+  }
+
+  for (const row of rows) {
+    if (!result[row.project_id]) {
+      result[row.project_id] = { memberIds: [], memberDetails: {} };
+    }
+    result[row.project_id].memberIds.push(row.user_id);
+    result[row.project_id].memberDetails[row.user_id] = {
+      id: row.user_id,
+      uid: row.user_id,
+      email: row.email,
+      displayName: row.display_name,
+      role: row.role,
+      joinedAt: row.joined_at,
+    };
+  }
+
+  return result;
+}
+
 export const listProjects = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -69,21 +106,22 @@ export const listProjects = async (
       [userId]
     );
 
-    const projects: Project[] = [];
+    const projectIds = rows.map((p) => p.id);
+    const membersBatch = await getProjectsMembersBatchMap(projectIds);
 
-    for (const p of rows) {
-      const { memberIds, memberDetails } = await getProjectMembersMap(p.id);
-      projects.push({
+    const projects: Project[] = rows.map((p) => {
+      const members = membersBatch[p.id] || { memberIds: [], memberDetails: {} };
+      return {
         id: p.id,
         name: p.name,
         description: p.description || '',
         ownerId: p.owner_id,
-        memberIds,
-        memberDetails,
+        memberIds: members.memberIds,
+        memberDetails: members.memberDetails,
         createdAt: p.created_at,
         updatedAt: p.updated_at,
-      });
-    }
+      };
+    });
 
     res.status(200).json(projects);
   } catch (error) {

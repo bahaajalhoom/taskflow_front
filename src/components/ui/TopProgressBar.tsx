@@ -44,8 +44,8 @@ export default function TopProgressBar() {
       }
     };
 
-    const handleEnd = (e: any) => {
-      const active = e.detail?.active ?? 0;
+    const handleEnd = (e: Event) => {
+      const active = (e as CustomEvent<{ active: number }>).detail?.active ?? 0;
       if (active === 0) {
         if (progressTimer) {
           clearInterval(progressTimer);

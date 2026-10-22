@@ -834,7 +834,7 @@ export default function ProjectDetailsPage() {
         dataIndex: 'assigneeName',
         key: 'assigneeName',
         width: 170,
-        render: (_: any, record: Task) => {
+        render: (_: unknown, record: Task) => {
           if (!record.assigneeName) {
             return <span className="text-slate-400 text-sm italic">{t('unassigned')}</span>;
           }
@@ -882,7 +882,7 @@ export default function ProjectDetailsPage() {
         title: t('colActions'),
         key: 'actions',
         width: 110,
-        render: (_: any, record: Task) => {
+        render: (_: unknown, record: Task) => {
           const canEdit =
             !isViewer && (isOwner || isMaintainer || record.createdBy === user?.uid || record.assigneeId === user?.uid);
           const canDelete =

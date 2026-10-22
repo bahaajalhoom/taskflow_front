@@ -512,7 +512,7 @@ interface LanguageContextType {
   t: (key: TranslationKey) => string;
   formatTaskStatus: (status: TaskStatus) => string;
   formatTaskPriority: (priority: TaskPriority | string) => string;
-  formatDateLocalized: (dateVal: any) => string;
+  formatDateLocalized: (dateVal: string | Date | number | { toDate?: () => Date; seconds?: number } | null | undefined) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -571,14 +571,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return priority;
   };
 
-  const formatDateLocalized = (dateVal: any): string => {
+  const formatDateLocalized = (dateVal: string | Date | number | { toDate?: () => Date; seconds?: number } | null | undefined): string => {
     if (!dateVal) return t('recently');
     try {
       let d: Date;
-      if (typeof dateVal.toDate === 'function') {
-        d = dateVal.toDate();
-      } else if (typeof dateVal.seconds === 'number') {
-        d = new Date(dateVal.seconds * 1000);
+      if (dateVal instanceof Date) {
+        d = dateVal;
+      } else if (typeof dateVal === 'number') {
+        d = new Date(dateVal);
       } else if (typeof dateVal === 'string') {
         const parts = dateVal.split('-');
         if (parts.length === 3 && parts[0].length === 4) {
@@ -586,10 +586,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
         } else {
           d = new Date(dateVal);
         }
-      } else if (dateVal instanceof Date) {
-        d = dateVal;
-      } else if (typeof dateVal === 'number') {
-        d = new Date(dateVal);
+      } else if (typeof dateVal === 'object' && dateVal !== null) {
+        if ('toDate' in dateVal && typeof (dateVal as any).toDate === 'function') {
+          d = (dateVal as any).toDate();
+        } else if ('seconds' in dateVal && typeof (dateVal as any).seconds === 'number') {
+          d = new Date((dateVal as any).seconds * 1000);
+        } else {
+          return t('recently');
+        }
       } else {
         return t('recently');
       }
