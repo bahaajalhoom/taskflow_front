@@ -150,6 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       removeAuthToken();
       setStoredUser(null);
       setUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     } finally {
       setLoading(false);
     }

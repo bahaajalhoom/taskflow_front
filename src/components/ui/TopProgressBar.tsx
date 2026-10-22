@@ -8,18 +8,18 @@ export default function TopProgressBar() {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  // Route change indicator
+  // Route change indicator — fast visual feedback on transitions
   useEffect(() => {
     setLoading(true);
-    setProgress(35);
-    const timer1 = setTimeout(() => setProgress(75), 100);
+    setProgress(45);
+    const timer1 = setTimeout(() => setProgress(85), 60);
     const timer2 = setTimeout(() => {
       setProgress(100);
       setTimeout(() => {
         setLoading(false);
         setProgress(0);
-      }, 200);
-    }, 280);
+      }, 140);
+    }, 160);
 
     return () => {
       clearTimeout(timer1);

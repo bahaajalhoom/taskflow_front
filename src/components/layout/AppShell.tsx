@@ -119,7 +119,9 @@ export default function AppShell({ children }: AppShellProps) {
       />
 
       {isPublicPage ? (
-        <main className={STYLES.publicMain}>{children}</main>
+        <main className={`${STYLES.publicMain} page-transition-enter`} key={pathname}>
+          {children}
+        </main>
       ) : (
         <div className={STYLES.appBody}>
           {/* السايد بار بالديسكتوب */}
@@ -157,7 +159,9 @@ export default function AppShell({ children }: AppShellProps) {
           </Drawer>
 
           {/* منطقة المحتوى الرئيسي */}
-          <main className={STYLES.appMain}>{children}</main>
+          <main className={`${STYLES.appMain} page-transition-enter`} key={pathname}>
+            {children}
+          </main>
         </div>
       )}
 
