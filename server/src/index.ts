@@ -114,6 +114,7 @@ app.get('/', (req, res) => {
         update: 'PATCH /api/projects/:id',
         delete: 'DELETE /api/projects/:id',
         addMember: 'POST /api/projects/:id/members',
+        updateMemberRole: 'PATCH /api/projects/:id/members/:memberId',
         removeMember: 'DELETE /api/projects/:id/members/:memberId',
       },
       tasks: {

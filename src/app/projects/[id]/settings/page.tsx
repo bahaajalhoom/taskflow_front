@@ -443,8 +443,9 @@ export default function ProjectSettingsPage() {
 
   const handleUpdateMemberRole = async (memberId: string, newRole: string) => {
     if (!user || !project) return;
+    const memberEmail = project.memberDetails?.[memberId]?.email;
     try {
-      const updated = await DataService.updateProjectMemberRole(projectId, memberId, newRole, user.uid);
+      const updated = await DataService.updateProjectMemberRole(projectId, memberId, newRole, user.uid, memberEmail);
       setProject(updated);
       message.success(isRTL ? 'تم تحديث صلاحية العضو بنجاح' : 'Member role updated successfully');
     } catch (err: any) {

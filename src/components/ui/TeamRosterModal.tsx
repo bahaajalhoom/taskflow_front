@@ -216,8 +216,9 @@ export default function TeamRosterModal({
   // Handle changing member role inline (Post-invite permission change)
   const handleUpdateRole = async (memberId: string, newRole: string) => {
     if (!project || !currentUserId) return;
+    const memberEmail = project.memberDetails?.[memberId]?.email;
     try {
-      const updated = await DataService.updateProjectMemberRole(project.id, memberId, newRole, currentUserId);
+      const updated = await DataService.updateProjectMemberRole(project.id, memberId, newRole, currentUserId, memberEmail);
       setProject(updated);
       onProjectUpdate?.(updated);
       message.success(

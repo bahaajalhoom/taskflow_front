@@ -167,12 +167,44 @@ export const DataService = {
     projectId: string,
     targetMemberId: string,
     role: string,
-    _userId: string
+    _userId: string,
+    memberEmail?: string
   ): Promise<Project> {
-    await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ role }),
-    });
+    try {
+      await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      });
+    } catch (err: any) {
+      const isMissingEndpoint =
+        err?.message?.includes('Endpoint not found') ||
+        err?.message?.includes('NOT_FOUND') ||
+        err?.message?.includes('404');
+
+      if (isMissingEndpoint) {
+        // Fallback for deployed remote backends that do not have PATCH /members/:memberId yet:
+        // Perform an atomic member delete + re-insert with the new role
+        let email = memberEmail;
+        if (!email) {
+          const currentProject = await this.getProjectById(projectId, _userId);
+          email = currentProject?.memberDetails?.[targetMemberId]?.email;
+        }
+
+        if (email) {
+          await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
+            method: 'DELETE',
+          });
+          await apiRequest<any>(`/projects/${projectId}/members`, {
+            method: 'POST',
+            body: JSON.stringify({ email, role }),
+          });
+        } else {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
 
     const updated = await this.getProjectById(projectId, _userId);
     if (!updated) throw new Error('Failed to retrieve updated project after changing member role.');
