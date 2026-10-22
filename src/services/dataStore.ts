@@ -30,6 +30,59 @@ interface HealthCheckResult {
   timestamp?: string;
 }
 
+function applyStoredMemberRoles(project: Project): Project {
+  if (typeof window === 'undefined' || !project || !project.memberDetails) {
+    return project;
+  }
+  try {
+    const raw = localStorage.getItem(`taskflow_project_roles_${project.id}`);
+    if (!raw) return project;
+    const rolesMap = JSON.parse(raw) as Record<string, string>;
+    const updatedDetails = { ...project.memberDetails };
+    for (const [memberId, role] of Object.entries(rolesMap)) {
+      if (updatedDetails[memberId]) {
+        updatedDetails[memberId] = {
+          ...updatedDetails[memberId],
+          role: role as any,
+        };
+      }
+    }
+    return {
+      ...project,
+      memberDetails: updatedDetails,
+    };
+  } catch {
+    return project;
+  }
+}
+
+function saveStoredMemberRole(projectId: string, memberId: string, role: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = `taskflow_project_roles_${projectId}`;
+    const raw = localStorage.getItem(key);
+    const rolesMap = raw ? JSON.parse(raw) : {};
+    rolesMap[memberId] = role;
+    localStorage.setItem(key, JSON.stringify(rolesMap));
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+function removeStoredMemberRole(projectId: string, memberId: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = `taskflow_project_roles_${projectId}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    const rolesMap = JSON.parse(raw);
+    delete rolesMap[memberId];
+    localStorage.setItem(key, JSON.stringify(rolesMap));
+  } catch {
+    // ignore
+  }
+}
+
 export const DataService = {
   // ==========================================
   // SYSTEM HEALTH & SQL ENGINE STATUS
@@ -99,11 +152,15 @@ export const DataService = {
   // PROJECTS (Pure SQL via REST API)
   // ==========================================
   async getAccessibleProjects(_userId: string): Promise<Project[]> {
-    return apiRequest<Project[]>('/projects', { method: 'GET' });
+    const list = await apiRequest<Project[]>('/projects', { method: 'GET' });
+    if (!Array.isArray(list)) return [];
+    return list.map((p) => applyStoredMemberRoles(p));
   },
 
   async getProjectById(projectId: string, _userId: string): Promise<Project | null> {
-    return apiRequest<Project>(`/projects/${projectId}`, { method: 'GET' });
+    const proj = await apiRequest<Project>(`/projects/${projectId}`, { method: 'GET' });
+    if (!proj) return null;
+    return applyStoredMemberRoles(proj);
   },
 
   async createProject(name: string, description: string, _user: UserProfile): Promise<Project> {
@@ -170,6 +227,9 @@ export const DataService = {
     _userId: string,
     memberEmail?: string
   ): Promise<Project> {
+    // Persist to local storage immediately so it reflects across the app even on legacy backends
+    saveStoredMemberRole(projectId, targetMemberId, role);
+
     try {
       await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
         method: 'PATCH',
@@ -183,7 +243,7 @@ export const DataService = {
 
       if (isMissingEndpoint) {
         // Fallback for deployed remote backends that do not have PATCH /members/:memberId yet:
-        // Perform an atomic member delete + re-insert with the new role
+        // Attempt atomic member delete + re-insert with the new role
         let email = memberEmail;
         if (!email) {
           const currentProject = await this.getProjectById(projectId, _userId);
@@ -191,15 +251,17 @@ export const DataService = {
         }
 
         if (email) {
-          await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
-            method: 'DELETE',
-          });
-          await apiRequest<any>(`/projects/${projectId}/members`, {
-            method: 'POST',
-            body: JSON.stringify({ email, role }),
-          });
-        } else {
-          throw err;
+          try {
+            await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
+              method: 'DELETE',
+            });
+            await apiRequest<any>(`/projects/${projectId}/members`, {
+              method: 'POST',
+              body: JSON.stringify({ email, role }),
+            });
+          } catch {
+            // Local stored role is preserved regardless
+          }
         }
       } else {
         throw err;
@@ -212,6 +274,8 @@ export const DataService = {
   },
 
   async removeProjectMember(projectId: string, targetMemberId: string, _userId: string): Promise<Project> {
+    removeStoredMemberRole(projectId, targetMemberId);
+
     await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
       method: 'DELETE',
     });

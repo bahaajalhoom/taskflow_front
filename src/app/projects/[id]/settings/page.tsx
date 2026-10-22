@@ -444,11 +444,29 @@ export default function ProjectSettingsPage() {
   const handleUpdateMemberRole = async (memberId: string, newRole: string) => {
     if (!user || !project) return;
     const memberEmail = project.memberDetails?.[memberId]?.email;
+
+    // Optimistic UI update: update state immediately so the dropdown and badge reflect newRole with 0 latency
+    setProject((prev) => {
+      if (!prev || !prev.memberDetails || !prev.memberDetails[memberId]) return prev;
+      return {
+        ...prev,
+        memberDetails: {
+          ...prev.memberDetails,
+          [memberId]: {
+            ...prev.memberDetails[memberId],
+            role: newRole as any,
+          },
+        },
+      };
+    });
+
     try {
       const updated = await DataService.updateProjectMemberRole(projectId, memberId, newRole, user.uid, memberEmail);
       setProject(updated);
       message.success(isRTL ? 'تم تحديث صلاحية العضو بنجاح' : 'Member role updated successfully');
     } catch (err: any) {
+      const current = await DataService.getProjectById(projectId, user.uid);
+      if (current) setProject(current);
       message.error(err?.message || 'Failed to update member role');
     }
   };

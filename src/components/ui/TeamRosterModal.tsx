@@ -217,6 +217,24 @@ export default function TeamRosterModal({
   const handleUpdateRole = async (memberId: string, newRole: string) => {
     if (!project || !currentUserId) return;
     const memberEmail = project.memberDetails?.[memberId]?.email;
+
+    // Optimistic UI update
+    setProject((prev) => {
+      if (!prev || !prev.memberDetails || !prev.memberDetails[memberId]) return prev;
+      const next = {
+        ...prev,
+        memberDetails: {
+          ...prev.memberDetails,
+          [memberId]: {
+            ...prev.memberDetails[memberId],
+            role: newRole as any,
+          },
+        },
+      };
+      onProjectUpdate?.(next);
+      return next;
+    });
+
     try {
       const updated = await DataService.updateProjectMemberRole(project.id, memberId, newRole, currentUserId, memberEmail);
       setProject(updated);
@@ -225,6 +243,11 @@ export default function TeamRosterModal({
         isArabic ? 'تم تحديث الصلاحية بنجاح' : 'Member role updated successfully'
       );
     } catch (err: any) {
+      const current = await DataService.getProjectById(project.id, currentUserId);
+      if (current) {
+        setProject(current);
+        onProjectUpdate?.(current);
+      }
       message.error(err?.message || 'Failed to update member role');
     }
   };
