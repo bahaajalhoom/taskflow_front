@@ -708,9 +708,9 @@ export default function ProjectMeetingView({
   const [recDuration, setRecDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const participantVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map());
   const recordingIntervalRef = useRef<number | null>(null);
-  const recordingAudioCtxRef = useRef<AudioContext | null>(null);
   const recDurationRef = useRef<number>(0);
 
   // تسجيل وحذف مراجع عناصر الفيديو للكانفاس
@@ -1118,6 +1118,11 @@ export default function ProjectMeetingView({
     }
     if (isRecording && mediaRecorderRef.current) {
       if (mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.requestData();
+        } catch {
+          // ignore
+        }
         mediaRecorderRef.current.stop();
       }
       setIsRecording(false);
@@ -1125,9 +1130,6 @@ export default function ProjectMeetingView({
     if (recordingIntervalRef.current) {
       clearInterval(recordingIntervalRef.current);
       recordingIntervalRef.current = null;
-    }
-    if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
-      recordingAudioCtxRef.current.close().catch(() => {});
     }
   }, [screenStream, isRecording]);
 
@@ -1301,13 +1303,17 @@ export default function ProjectMeetingView({
     }
   };
 
-  // تسجيل قاعة الاجتماع بالكامل عبر Canvas Compositor الداخلي (دون أي نافذة شير سكرين وبشكل مستقل يحمي الكاميرا)
+  // تسجيل قاعة الاجتماع بالكامل عبر Canvas Compositor الداخلي (دون أي نوافذ ودون لمس الكاميرا)
   const handleToggleRecording = () => {
     if (isRecording) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try {
+          mediaRecorderRef.current.requestData();
+        } catch {
+          // ignore
+        }
         mediaRecorderRef.current.stop();
       }
-      setIsRecording(false);
       return;
     }
 
@@ -1316,20 +1322,22 @@ export default function ProjectMeetingView({
       return;
     }
 
+    const canvas = recordingCanvasRef.current;
+    if (!canvas) {
+      message.error(isArabic ? 'تعذر تهيئة لوحة تسجيل الفيديو.' : 'Recording canvas unavailable.');
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      message.error(isArabic ? 'تعذر إنشاء محرك تسجيل الفيديو.' : 'Canvas context unavailable.');
+      return;
+    }
+
     try {
       recordedChunksRef.current = [];
 
-      // 1. إنشاء لوحة الكانفاس لتجميع كامل قاعة الاجتماع بدقة 720p عالية
-      const canvas = document.createElement('canvas');
-      canvas.width = 1280;
-      canvas.height = 720;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        message.error(isArabic ? 'تعذر إنشاء محرك تسجيل الفيديو.' : 'Canvas context unavailable.');
-        return;
-      }
-
-      // 2. دالة رسم إطارات استوديو الاجتماع
+      // 1. دالة رسم إطارات استوديو الاجتماع على الكانفاس بدقة 720p
       const renderMeetingCanvas = () => {
         try {
           const isSpotlight = Boolean(
@@ -1357,65 +1365,27 @@ export default function ProjectMeetingView({
         }
       };
 
-      // 3. رسم الإطار الأول فوراً لضمان وجود بكسلات حية قبل التقاط التدفق
+      // 2. رسم الإطار الأول فوراً بشكل متزامن
       renderMeetingCanvas();
 
-      // 4. التقاط تدفق الفيديو من الكانفاس بمعدل 30 إطاراً في الثانية
+      // 3. التقاط تدفق الفيديو من الكانفاس المثبت في الـ DOM بمعدل 30 إطاراً في الثانية
       const canvasStream = canvas.captureStream(30);
 
-      // 5. دمج الصوت من الميكروفون المحلي والزملاء عبر AudioContext دون التأثير على الكاميرا
-      try {
-        const AudioCtx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        if (AudioCtx) {
-          const audioCtx = new AudioCtx({ sampleRate: 48000 });
-          if (audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-          }
-          const audioDest = audioCtx.createMediaStreamDestination();
-
-          // الميكروفون المحلي عبر مسار مستنسخ مستقل
-          const localTrack = localStreamRef.current?.getAudioTracks()[0];
-          if (localTrack && localTrack.readyState === 'live') {
-            try {
-              const clonedTrack = localTrack.clone();
-              const localSrc = audioCtx.createMediaStreamSource(new MediaStream([clonedTrack]));
-              localSrc.connect(audioDest);
-            } catch {
-              // ignore
-            }
-          }
-
-          // أصوات جميع المشاركين في الاجتماع
-          Object.values(remoteStreams).forEach((peerStream) => {
-            const rTrack = peerStream.getAudioTracks()[0];
-            if (rTrack && rTrack.readyState === 'live') {
-              try {
-                const clonedRemote = rTrack.clone();
-                const rSrc = audioCtx.createMediaStreamSource(new MediaStream([clonedRemote]));
-                rSrc.connect(audioDest);
-              } catch {
-                // ignore
-              }
-            }
-          });
-
-          const mixedTracks = audioDest.stream.getAudioTracks();
-          if (mixedTracks.length > 0 && mixedTracks[0]) {
-            canvasStream.addTrack(mixedTracks[0]);
-            recordingAudioCtxRef.current = audioCtx;
-          }
+      // 4. إضافة مسار الميكروفون المباشر بأمان في حال كان نشطاً دون AudioContext
+      const localAudioTrack = localStreamRef.current?.getAudioTracks()[0];
+      if (localAudioTrack && localAudioTrack.readyState === 'live') {
+        try {
+          canvasStream.addTrack(localAudioTrack.clone());
+        } catch {
+          // ignore
         }
-      } catch {
-        // في حال تعذر خلط الصوت يستمر تسجيل الفيديو بثبات
       }
 
-      // 6. تشغيل مؤقت الإطارات المستمر 30fps
+      // 5. تشغيل مؤقت الإطارات المستمر 30fps
       const intervalId = window.setInterval(renderMeetingCanvas, 1000 / 30);
       recordingIntervalRef.current = intervalId;
 
-      // 7. تهيئة وتشغيل MediaRecorder
+      // 6. تهيئة وتشغيل MediaRecorder بصيغة الفيديو المعتمدة
       const chosenMime = getSupportedRecordingMimeType();
       const options: MediaRecorderOptions = chosenMime ? { mimeType: chosenMime } : {};
       const rec = new MediaRecorder(canvasStream, options);
@@ -1432,9 +1402,6 @@ export default function ProjectMeetingView({
           clearInterval(recordingIntervalRef.current);
           recordingIntervalRef.current = null;
         }
-        if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
-          recordingAudioCtxRef.current.close().catch(() => {});
-        }
       };
 
       rec.onstop = () => {
@@ -1443,36 +1410,58 @@ export default function ProjectMeetingView({
           clearInterval(recordingIntervalRef.current);
           recordingIntervalRef.current = null;
         }
-        if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
-          recordingAudioCtxRef.current.close().catch(() => {});
-        }
         canvasStream.getTracks().forEach((t) => t.stop());
 
         if (!recordedChunksRef.current || recordedChunksRef.current.length === 0) {
+          message.warning(
+            isArabic
+              ? 'لم يتم التقاط بيانات فيديو صالحة، يرجى المحاولة مرة أخرى.'
+              : 'No recorded video data captured. Please try again.'
+          );
           return;
         }
 
-        const mimeForBlob = chosenMime || (rec.mimeType || 'video/webm');
+        const mimeForBlob = rec.mimeType || chosenMime || 'video/webm';
         const blob = new Blob(recordedChunksRef.current, { type: mimeForBlob });
-        if (blob.size === 0) return;
+        if (blob.size === 0) {
+          message.warning(
+            isArabic
+              ? 'ملف الفيديو فارغ، يرجى المحاولة مرة أخرى.'
+              : 'Recording file is empty. Please try again.'
+          );
+          return;
+        }
 
         const extension = mimeForBlob.includes('mp4') ? 'mp4' : 'webm';
+        const safeName = project.name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_');
+        const fileName = `TaskFlow-Meeting-${safeName}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = url;
-        a.download = `TaskFlow-Meeting-${project.name}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+        a.download = fileName;
         document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+
+        // تأخير حذف الرابط لضمان إتمام المتصفح عملية التنزيل
+        setTimeout(() => {
+          try {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } catch {
+            // ignore
+          }
+        }, 3000);
+
         message.success(
           isArabic
-            ? 'تم حفظ وتحميل تسجيل الاجتماع الكامل بنجاح.'
-            : 'Full meeting recording saved and downloaded.'
+            ? `تم حفظ وتحميل تسجيل الاجتماع (${fileName}) بنجاح.`
+            : `Full meeting recording (${fileName}) saved and downloaded.`
         );
       };
 
-      rec.start(1000);
+      rec.start(500);
       mediaRecorderRef.current = rec;
       setIsRecording(true);
       message.success(
@@ -1941,6 +1930,16 @@ export default function ProjectMeetingView({
           </Button>
         </Popconfirm>
       </div>
+
+      {/* 4. لوحة الكانفاس لتسجيل استوديو الاجتماع المباشر بدقة 720p مثبتة في الشجرة لضمان التقاط الإطارات */}
+      <canvas
+        ref={recordingCanvasRef}
+        width={1280}
+        height={720}
+        className="fixed -top-[9999px] -left-[9999px] pointer-events-none opacity-0"
+        style={{ width: 1, height: 1 }}
+        aria-hidden="true"
+      />
     </div>
   );
 }
