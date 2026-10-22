@@ -89,6 +89,255 @@ function getInitials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+// واجهة المشارك في كانفاس الاستوديو
+interface CanvasParticipant {
+  id: string;
+  name: string;
+  videoEl: HTMLVideoElement | null;
+  isMuted: boolean;
+  isCamOff: boolean;
+  isHandRaised: boolean;
+  isLocal: boolean;
+}
+
+// رسم بطاقة مشارك فردي داخل كانفاس استوديو الاجتماع
+function drawParticipantTile(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  participant: CanvasParticipant
+) {
+  // خلفية البطاقة
+  ctx.fillStyle = '#0F172A';
+  ctx.fillRect(x, y, w, h);
+
+  // إطار البطاقة
+  ctx.strokeStyle = '#1E293B';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+
+  let drewVideo = false;
+  if (!participant.isCamOff && participant.videoEl && participant.videoEl.readyState >= 2 && !participant.videoEl.paused) {
+    try {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+
+      const vW = participant.videoEl.videoWidth || 640;
+      const vH = participant.videoEl.videoHeight || 480;
+      const hRatio = w / vW;
+      const vRatio = h / vH;
+      const ratio = Math.max(hRatio, vRatio);
+      const drawW = vW * ratio;
+      const drawH = vH * ratio;
+      const drawX = x + (w - drawW) / 2;
+      const drawY = y + (h - drawH) / 2;
+
+      if (participant.isLocal) {
+        ctx.translate(x + w, y);
+        ctx.scale(-1, 1);
+        ctx.drawImage(participant.videoEl, 0, 0, w, h);
+      } else {
+        ctx.drawImage(participant.videoEl, drawX, drawY, drawW, drawH);
+      }
+      ctx.restore();
+      drewVideo = true;
+    } catch {
+      drewVideo = false;
+    }
+  }
+
+  if (!drewVideo) {
+    const r = Math.min(36, Math.floor(h / 4));
+    ctx.fillStyle = '#1E293B';
+    ctx.beginPath();
+    ctx.arc(x + w / 2, y + h / 2 - 10, r, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#E2E8F0';
+    ctx.font = `bold ${Math.max(14, Math.floor(r * 0.75))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(getInitials(participant.name), x + w / 2, y + h / 2 - 10);
+
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#64748B';
+    ctx.fillText(participant.isCamOff ? 'Camera Off' : 'Voice Only', x + w / 2, y + h / 2 + r + 12);
+  }
+
+  // شريط الاسم والحالة في أسفل البطاقة
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.fillRect(x, y + h - 28, w, 28);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.strokeRect(x, y + h - 28, w, 28);
+
+  ctx.fillStyle = '#F8FAFC';
+  ctx.font = 'bold 12px sans-serif';
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(participant.name, x + 10, y + h - 14);
+
+  let badgeX = x + w - 10;
+  if (participant.isHandRaised) {
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'end';
+    ctx.fillText('[HAND]', badgeX, y + h - 14);
+    badgeX -= 45;
+  }
+
+  if (participant.isMuted) {
+    ctx.fillStyle = '#FB7185';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'end';
+    ctx.fillText('[MUTED]', badgeX, y + h - 14);
+  } else {
+    ctx.fillStyle = '#34D399';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'end';
+    ctx.fillText('[MIC]', badgeX, y + h - 14);
+  }
+}
+
+// رسم كامل استوديو الاجتماع على الكانفاس بدقة 720p عالية
+function drawMeetingRoomCanvas(
+  ctx: CanvasRenderingContext2D,
+  projectName: string,
+  localUser: { name: string; isMuted: boolean; isCamOff: boolean; isHandRaised: boolean },
+  remoteParticipants: MeetingParticipant[],
+  participantVideos: Map<string, HTMLVideoElement>,
+  spotlightVideoEl: HTMLVideoElement | null,
+  isSpotlightActive: boolean,
+  recDuration: number
+) {
+  // خلفية الكانفاس
+  ctx.fillStyle = '#090D16';
+  ctx.fillRect(0, 0, 1280, 720);
+
+  // 1. ترويسة الاستوديو العلوية
+  ctx.fillStyle = '#0B0F19';
+  ctx.fillRect(0, 0, 1280, 48);
+  ctx.strokeStyle = '#1E293B';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 48);
+  ctx.lineTo(1280, 48);
+  ctx.stroke();
+
+  // وميض مؤشر التسجيل الأحمر
+  const isBlinkOn = Math.floor(Date.now() / 600) % 2 === 0;
+  ctx.fillStyle = isBlinkOn ? '#EF4444' : '#DC2626';
+  ctx.beginPath();
+  ctx.arc(24, 24, 6, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.fillStyle = '#F8FAFC';
+  ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'start';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TaskFlow Meeting Studio  •  ' + projectName, 40, 24);
+
+  ctx.fillStyle = '#94A3B8';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'end';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('REC ' + formatTimer(recDuration) + '  •  ' + new Date().toLocaleTimeString(), 1260, 24);
+
+  // 2. تجميع بطاقات المشاركين
+  const cards: CanvasParticipant[] = [
+    {
+      id: 'local',
+      name: `${localUser.name} (You)`,
+      videoEl: participantVideos.get('local') || null,
+      isMuted: localUser.isMuted,
+      isCamOff: localUser.isCamOff,
+      isHandRaised: localUser.isHandRaised,
+      isLocal: true,
+    },
+    ...remoteParticipants.map((p) => ({
+      id: p.peerId,
+      name: p.displayName,
+      videoEl: participantVideos.get(p.peerId) || null,
+      isMuted: p.isMuted,
+      isCamOff: p.isVideoOff,
+      isHandRaised: p.isHandRaised,
+      isLocal: false,
+    })),
+  ];
+
+  // 3. تخطيط وتوزيع المسرح
+  if (isSpotlightActive && spotlightVideoEl && spotlightVideoEl.readyState >= 2) {
+    // وضع مشاركة الشاشة في المركز الأكبر
+    ctx.fillStyle = '#05070D';
+    ctx.fillRect(16, 56, 940, 648);
+    ctx.strokeStyle = '#1E293B';
+    ctx.strokeRect(16, 56, 940, 648);
+
+    const sW = spotlightVideoEl.videoWidth || 1280;
+    const sH = spotlightVideoEl.videoHeight || 720;
+    const sRatio = Math.min(940 / sW, 648 / sH);
+    const fitW = sW * sRatio;
+    const fitH = sH * sRatio;
+    const fitX = 16 + (940 - fitW) / 2;
+    const fitY = 56 + (648 - fitH) / 2;
+
+    try {
+      ctx.drawImage(spotlightVideoEl, fitX, fitY, fitW, fitH);
+    } catch {
+      // ignore
+    }
+
+    // شارة مشاركة الشاشة
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(24, 64, 130, 26);
+    ctx.fillStyle = '#10B981';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'start';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('SCREEN SHARE', 34, 77);
+
+    // شريط كاميرات المشاركين على اليمين
+    const colX = 968;
+    const colW = 296;
+    const count = Math.min(4, cards.length);
+    const tileH = Math.min(154, Math.floor((648 - (count - 1) * 8) / Math.max(1, count)));
+
+    cards.slice(0, 4).forEach((card, idx) => {
+      const tileY = 56 + idx * (tileH + 8);
+      drawParticipantTile(ctx, colX, tileY, colW, tileH, card);
+    });
+  } else {
+    // وضع الشبكة التشاركية لجميع الحاضرين
+    if (cards.length === 1) {
+      drawParticipantTile(ctx, 240, 66, 800, 630, cards[0]);
+    } else if (cards.length === 2) {
+      drawParticipantTile(ctx, 20, 76, 610, 610, cards[0]);
+      drawParticipantTile(ctx, 650, 76, 610, 610, cards[1]);
+    } else if (cards.length <= 4) {
+      const w = 610;
+      const h = 304;
+      drawParticipantTile(ctx, 20, 66, w, h, cards[0]);
+      drawParticipantTile(ctx, 650, 66, w, h, cards[1]);
+      if (cards[2]) drawParticipantTile(ctx, 20, 390, w, h, cards[2]);
+      if (cards[3]) drawParticipantTile(ctx, 650, 390, w, h, cards[3]);
+    } else {
+      const w = 400;
+      const h = 304;
+      cards.slice(0, 6).forEach((card, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        drawParticipantTile(ctx, 20 + col * 420, 66 + row * 324, w, h, card);
+      });
+    }
+  }
+}
+
 // الكشف عن أفضل صيغة تسجيل مدعومة في متصفح العميل
 function getSupportedRecordingMimeType(): string {
   if (typeof window === 'undefined' || typeof MediaRecorder === 'undefined') return '';
@@ -251,8 +500,9 @@ function AudioWaveMeter({
   );
 }
 
-// بطاقة مشارك في الاجتماع (تعرض الفيديو الفعلي مع قراءة دقيقة لحالة المسار الحي)
+// بطاقة مشارك في الاجتماع (تعرض الفيديو الفعلي مع تسجيل المرجع للكانفاس)
 function ParticipantCard({
+  id,
   name,
   isLocal,
   isMuted,
@@ -260,7 +510,9 @@ function ParticipantCard({
   isHandRaised,
   videoStream,
   isArabic,
+  onRegisterVideo,
 }: {
+  id: string;
   name: string;
   isLocal: boolean;
   isMuted: boolean;
@@ -268,10 +520,23 @@ function ParticipantCard({
   isHandRaised: boolean;
   videoStream?: MediaStream | null;
   isArabic: boolean;
+  onRegisterVideo?: (id: string, el: HTMLVideoElement | null) => void;
 }) {
   const videoElRef = useRef<HTMLVideoElement>(null);
   const [hasActiveVideoTrack, setHasActiveVideoTrack] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    const videoEl = videoElRef.current;
+    if (onRegisterVideo) {
+      onRegisterVideo(id, videoEl);
+    }
+    return () => {
+      if (onRegisterVideo) {
+        onRegisterVideo(id, null);
+      }
+    };
+  }, [id, onRegisterVideo]);
 
   useEffect(() => {
     const videoEl = videoElRef.current;
@@ -438,11 +703,29 @@ export default function ProjectMeetingView({
   const iceCandidatesQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
 
-  // ميزة تسجيل قاعة الاجتماع بالكامل (MediaRecorder عبر Tab Display Media)
+  // ميزة تسجيل قاعة الاجتماع بالكامل (MediaRecorder عبر Canvas Compositor الداخلي للاستوديو)
   const [isRecording, setIsRecording] = useState(false);
   const [recDuration, setRecDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+  const participantVideosRef = useRef<Map<string, HTMLVideoElement>>(new Map());
+  const recordingIntervalRef = useRef<number | null>(null);
+  const recordingAudioCtxRef = useRef<AudioContext | null>(null);
+  const recDurationRef = useRef<number>(0);
+
+  // تسجيل وحذف مراجع عناصر الفيديو للكانفاس
+  const registerParticipantVideo = useCallback((id: string, el: HTMLVideoElement | null) => {
+    if (el) {
+      participantVideosRef.current.set(id, el);
+    } else {
+      participantVideosRef.current.delete(id);
+    }
+  }, []);
+
+  // مزامنة مدة التسجيل مع المرجع
+  useEffect(() => {
+    recDurationRef.current = recDuration;
+  }, [recDuration]);
 
   // المشاركون في الاجتماع من الخادم
   const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
@@ -834,8 +1117,17 @@ export default function ProjectMeetingView({
       meetingStateRef.current.isScreenSharing = false;
     }
     if (isRecording && mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
+      if (mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+      }
       setIsRecording(false);
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
+      recordingAudioCtxRef.current.close().catch(() => {});
     }
   }, [screenStream, isRecording]);
 
@@ -1009,8 +1301,8 @@ export default function ProjectMeetingView({
     }
   };
 
-  // تسجيل قاعة الاجتماع بالكامل عبر تسجيل نافذة/تبويب المتصفح الأصلي (يحمي الكاميرا ويسجل كامل الحضور والصوت)
-  const handleToggleRecording = async () => {
+  // تسجيل قاعة الاجتماع بالكامل عبر Canvas Compositor الداخلي (دون أي نافذة شير سكرين وبشكل مستقل يحمي الكاميرا)
+  const handleToggleRecording = () => {
     if (isRecording) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
         mediaRecorderRef.current.stop();
@@ -1025,32 +1317,108 @@ export default function ProjectMeetingView({
     }
 
     try {
-      message.info(
-        isArabic
-          ? 'يرجى اختيار تبويب الاجتماع الحالي لتسجيل كامل القاعة بالصوت والصورة.'
-          : 'Please select this meeting tab to record full video and audio.'
-      );
+      recordedChunksRef.current = [];
 
-      // التقاط دفق التبويب الأصلي (فيديو وصوت الغرفة كاملاً)
-      const recordStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { displaySurface: 'browser' } as any,
-        audio: true,
-      });
+      // 1. إنشاء لوحة الكانفاس لتجميع كامل قاعة الاجتماع بدقة 720p عالية
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        message.error(isArabic ? 'تعذر إنشاء محرك تسجيل الفيديو.' : 'Canvas context unavailable.');
+        return;
+      }
 
-      // دمج صوت ميكروفون المستخدم المحلي لضمان وجود صوته في التسجيل
-      const localMicTrack = localStreamRef.current?.getAudioTracks()[0];
-      if (localMicTrack && localMicTrack.readyState === 'live') {
+      // 2. دالة رسم إطارات استوديو الاجتماع
+      const renderMeetingCanvas = () => {
         try {
-          recordStream.addTrack(localMicTrack.clone());
+          const isSpotlight = Boolean(
+            (meetingStateRef.current.isScreenSharing || remoteScreenSharer) &&
+            spotlightVideoRef.current &&
+            spotlightVideoRef.current.readyState >= 2
+          );
+          drawMeetingRoomCanvas(
+            ctx,
+            project.name,
+            {
+              name: userName,
+              isMuted: meetingStateRef.current.isMicMuted,
+              isCamOff: meetingStateRef.current.isCamOff,
+              isHandRaised: meetingStateRef.current.isHandRaised,
+            },
+            remoteParticipants,
+            participantVideosRef.current,
+            spotlightVideoRef.current,
+            isSpotlight,
+            recDurationRef.current
+          );
         } catch {
           // ignore
         }
+      };
+
+      // 3. رسم الإطار الأول فوراً لضمان وجود بكسلات حية قبل التقاط التدفق
+      renderMeetingCanvas();
+
+      // 4. التقاط تدفق الفيديو من الكانفاس بمعدل 30 إطاراً في الثانية
+      const canvasStream = canvas.captureStream(30);
+
+      // 5. دمج الصوت من الميكروفون المحلي والزملاء عبر AudioContext دون التأثير على الكاميرا
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx({ sampleRate: 48000 });
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+          }
+          const audioDest = audioCtx.createMediaStreamDestination();
+
+          // الميكروفون المحلي عبر مسار مستنسخ مستقل
+          const localTrack = localStreamRef.current?.getAudioTracks()[0];
+          if (localTrack && localTrack.readyState === 'live') {
+            try {
+              const clonedTrack = localTrack.clone();
+              const localSrc = audioCtx.createMediaStreamSource(new MediaStream([clonedTrack]));
+              localSrc.connect(audioDest);
+            } catch {
+              // ignore
+            }
+          }
+
+          // أصوات جميع المشاركين في الاجتماع
+          Object.values(remoteStreams).forEach((peerStream) => {
+            const rTrack = peerStream.getAudioTracks()[0];
+            if (rTrack && rTrack.readyState === 'live') {
+              try {
+                const clonedRemote = rTrack.clone();
+                const rSrc = audioCtx.createMediaStreamSource(new MediaStream([clonedRemote]));
+                rSrc.connect(audioDest);
+              } catch {
+                // ignore
+              }
+            }
+          });
+
+          const mixedTracks = audioDest.stream.getAudioTracks();
+          if (mixedTracks.length > 0 && mixedTracks[0]) {
+            canvasStream.addTrack(mixedTracks[0]);
+            recordingAudioCtxRef.current = audioCtx;
+          }
+        }
+      } catch {
+        // في حال تعذر خلط الصوت يستمر تسجيل الفيديو بثبات
       }
 
-      recordedChunksRef.current = [];
+      // 6. تشغيل مؤقت الإطارات المستمر 30fps
+      const intervalId = window.setInterval(renderMeetingCanvas, 1000 / 30);
+      recordingIntervalRef.current = intervalId;
+
+      // 7. تهيئة وتشغيل MediaRecorder
       const chosenMime = getSupportedRecordingMimeType();
       const options: MediaRecorderOptions = chosenMime ? { mimeType: chosenMime } : {};
-      const rec = new MediaRecorder(recordStream, options);
+      const rec = new MediaRecorder(canvasStream, options);
 
       rec.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) {
@@ -1058,19 +1426,27 @@ export default function ProjectMeetingView({
         }
       };
 
-      // في حال قام المستخدم بإيقاف المشاركة من شريط المتصفح العائم
-      const videoTrack = recordStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.onended = () => {
-          if (rec.state !== 'inactive') {
-            rec.stop();
-          }
-        };
-      }
+      rec.onerror = () => {
+        setIsRecording(false);
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+        if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
+          recordingAudioCtxRef.current.close().catch(() => {});
+        }
+      };
 
       rec.onstop = () => {
         setIsRecording(false);
-        recordStream.getTracks().forEach((t) => t.stop());
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+        if (recordingAudioCtxRef.current && recordingAudioCtxRef.current.state !== 'closed') {
+          recordingAudioCtxRef.current.close().catch(() => {});
+        }
+        canvasStream.getTracks().forEach((t) => t.stop());
 
         if (!recordedChunksRef.current || recordedChunksRef.current.length === 0) {
           return;
@@ -1106,6 +1482,7 @@ export default function ProjectMeetingView({
       );
     } catch {
       setIsRecording(false);
+      message.error(isArabic ? 'تعذر تشغيل مسجل الاجتماع.' : 'Recording failed to start.');
     }
   };
 
@@ -1306,6 +1683,7 @@ export default function ProjectMeetingView({
           >
             {/* 1. Local User Tile */}
             <ParticipantCard
+              id="local"
               name={userName}
               isLocal={true}
               isMuted={isMicMuted}
@@ -1313,6 +1691,7 @@ export default function ProjectMeetingView({
               isHandRaised={isHandRaised}
               videoStream={localStream}
               isArabic={isArabic}
+              onRegisterVideo={registerParticipantVideo}
             />
 
             {/* 2. Remote Participants with REAL WebRTC Video & Audio Streams */}
@@ -1321,6 +1700,7 @@ export default function ProjectMeetingView({
               return (
                 <ParticipantCard
                   key={peer.id}
+                  id={peer.peerId}
                   name={peer.displayName}
                   isLocal={false}
                   isMuted={peer.isMuted}
@@ -1328,6 +1708,7 @@ export default function ProjectMeetingView({
                   isHandRaised={peer.isHandRaised}
                   videoStream={peerStream}
                   isArabic={isArabic}
+                  onRegisterVideo={registerParticipantVideo}
                 />
               );
             })}
