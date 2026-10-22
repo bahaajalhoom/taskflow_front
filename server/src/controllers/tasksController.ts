@@ -59,8 +59,8 @@ export const listTasks = async (
       throw new AppError(404, 'Project not found in SQL database.', 'NOT_FOUND');
     }
 
-    const membership = await dbGet<{ user_id: string }>(
-      `SELECT user_id FROM project_members WHERE project_id = ? AND user_id = ?`,
+    const membership = await dbGet<{ user_id: string; role: string }>(
+      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
       [projectId, userId]
     );
 
@@ -108,13 +108,17 @@ export const createTask = async (
       throw new AppError(404, 'Project not found.', 'NOT_FOUND');
     }
 
-    const membership = await dbGet<{ user_id: string }>(
-      `SELECT user_id FROM project_members WHERE project_id = ? AND user_id = ?`,
+    const membership = await dbGet<{ user_id: string; role: string }>(
+      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
       [projectId, userId]
     );
 
     if (!membership && project.owner_id !== userId) {
       throw new AppError(403, 'Access denied: You are not a member of this project.', 'FORBIDDEN');
+    }
+
+    if (membership?.role === 'viewer') {
+      throw new AppError(403, 'Viewers have read-only access and cannot create tasks.', 'FORBIDDEN');
     }
 
     let assigneeId: string | null = null;
@@ -212,16 +216,26 @@ export const updateTask = async (
       throw new AppError(404, 'Task not found in this project.', 'NOT_FOUND');
     }
 
-    const isOwner = project.owner_id === userId;
+    const membership = await dbGet<{ user_id: string; role: string }>(
+      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
+      [projectId, userId]
+    );
+
+    if (membership?.role === 'viewer') {
+      throw new AppError(403, 'Viewers have read-only access and cannot edit tasks.', 'FORBIDDEN');
+    }
+
+    const isOwner = project.owner_id === userId || membership?.role === 'owner';
+    const isMaintainer = membership?.role === 'maintainer';
     const isCreator = task.created_by === userId;
     const isAssignee = task.assignee_id === userId;
 
-    if (!isOwner && !isCreator && !isAssignee) {
-      throw new AppError(403, 'Unauthorized: Only project owners, task creators, or assignees can edit this task.', 'FORBIDDEN');
+    if (!isOwner && !isMaintainer && !isCreator && !isAssignee) {
+      throw new AppError(403, 'Unauthorized: Only project owners, maintainers, task creators, or assignees can edit this task.', 'FORBIDDEN');
     }
 
-    // Assignees who are not owners or creators are strictly restricted to updating status only
-    if (isAssignee && !isOwner && !isCreator) {
+    // Assignees who are not owners, maintainers, or creators are strictly restricted to updating status only
+    if (isAssignee && !isOwner && !isMaintainer && !isCreator) {
       const hasForbiddenField = [
         validated.title !== undefined,
         validated.description !== undefined,
@@ -334,11 +348,21 @@ export const deleteTask = async (
       throw new AppError(404, 'Task not found in this project.', 'NOT_FOUND');
     }
 
-    const isOwner = project.owner_id === userId;
+    const membership = await dbGet<{ user_id: string; role: string }>(
+      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
+      [projectId, userId]
+    );
+
+    if (membership?.role === 'viewer') {
+      throw new AppError(403, 'Viewers have read-only access and cannot delete tasks.', 'FORBIDDEN');
+    }
+
+    const isOwner = project.owner_id === userId || membership?.role === 'owner';
+    const isMaintainer = membership?.role === 'maintainer';
     const isCreator = task.created_by === userId;
 
-    if (!isOwner && !isCreator) {
-      throw new AppError(403, 'Unauthorized: Only project owners or task creators can delete this task.', 'FORBIDDEN');
+    if (!isOwner && !isMaintainer && !isCreator) {
+      throw new AppError(403, 'Unauthorized: Only project owners, maintainers, or task creators can delete this task.', 'FORBIDDEN');
     }
 
     await dbRun(`DELETE FROM tasks WHERE id = ? AND project_id = ?`, [taskId, projectId]);

@@ -10,7 +10,7 @@ import TopProgressBar from '@/components/ui/TopProgressBar';
 
 export const dynamic = 'force-dynamic';
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taskflow.app';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taskflow.apps.taqat.academy';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -48,14 +48,15 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ar_SA',
     alternateLocale: ['en_US'],
-    url: '/',
+    url: 'https://taskflow.apps.taqat.academy/',
     siteName: 'TaskFlow',
     title: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     description:
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
     images: [
       {
-        url: '/og-image.png',
+        url: 'https://taskflow.apps.taqat.academy/og-image.png',
+        secureUrl: 'https://taskflow.apps.taqat.academy/og-image.png',
         width: 1200,
         height: 630,
         alt: 'TaskFlow - Precision Project & Task Management',
@@ -68,7 +69,7 @@ export const metadata: Metadata = {
     title: 'TaskFlow | Precision Project & Task Management',
     description:
       'Modern enterprise project and task management platform with Kanban workflows and sprint velocity analytics.',
-    images: ['/og-image.png'],
+    images: ['https://taskflow.apps.taqat.academy/og-image.png'],
   },
 };
 
@@ -97,6 +98,24 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/* WhatsApp & Social Media OpenGraph Meta Tags (Direct & Absolute URLs) */}
+        <meta property="og:title" content="TaskFlow | منصة إدارة المشاريع والمهام الذكية" />
+        <meta
+          property="og:description"
+          content="منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق."
+        />
+        <meta property="og:url" content="https://taskflow.apps.taqat.academy/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="TaskFlow" />
+        <meta property="og:image" content="https://taskflow.apps.taqat.academy/og-image.png" />
+        <meta property="og:image:secure_url" content="https://taskflow.apps.taqat.academy/og-image.png" />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="TaskFlow" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://taskflow.apps.taqat.academy/og-image.png" />
       </head>
       <body className="flex flex-col min-h-screen bg-[#F4F4F2] dark:bg-[#0C0B0A] text-[#1B1915] dark:text-[#EFE9DD] transition-colors selection:bg-[#D4B26E]/30">
         <Suspense fallback={null}>

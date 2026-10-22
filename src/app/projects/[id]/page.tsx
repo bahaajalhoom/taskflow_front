@@ -459,6 +459,15 @@ export default function ProjectDetailsPage() {
 
   // --- Derived Calculations & Filtered Tasks (Zero useEffect loops) ---
   const isOwner = Boolean(project && user && project.ownerId === user.uid);
+  const currentUserRole = useMemo(() => {
+    if (!project || !user) return 'viewer';
+    if (project.ownerId === user.uid) return 'owner';
+    return project.memberDetails?.[user.uid]?.role || 'member';
+  }, [project, user]);
+
+  const isMaintainer = currentUserRole === 'maintainer';
+  const isViewer = currentUserRole === 'viewer';
+  const canManageProject = isOwner || isMaintainer;
 
   const filteredTasks = useMemo(() => {
     return filterAndSortTasks(tasks, filters, user?.uid);
@@ -499,6 +508,14 @@ export default function ProjectDetailsPage() {
 
   // --- Modal Openers ---
   const openCreateTaskModal = (initialStatus?: TaskStatus | React.MouseEvent) => {
+    if (isViewer) {
+      message.warning(
+        isArabic
+          ? 'المشاهد (Viewer) لديه صلاحية قراءة فقط ولا يمكنه إضافة مهام.'
+          : 'Viewers have read-only access and cannot create tasks.'
+      );
+      return;
+    }
     const statusVal: TaskStatus =
       initialStatus === 'in_progress' || initialStatus === 'done' ? initialStatus : 'todo';
     setEditingTask(null);
@@ -514,9 +531,21 @@ export default function ProjectDetailsPage() {
 
   const openEditTaskModal = (task: Task) => {
     if (!user) return;
-    const canEdit = isOwner || task.createdBy === user.uid || task.assigneeId === user.uid;
+    if (isViewer) {
+      message.warning(
+        isArabic
+          ? 'المشاهد (Viewer) لديه صلاحية قراءة فقط ولا يمكنه تعديل المهام.'
+          : 'Viewers have read-only access and cannot edit tasks.'
+      );
+      return;
+    }
+    const canEdit = isOwner || isMaintainer || task.createdBy === user.uid || task.assigneeId === user.uid;
     if (!canEdit) {
-      message.error('You can only edit tasks you created or are assigned to.');
+      message.error(
+        isArabic
+          ? 'يمكنك فقط تعديل المهام المسندة إليك أو التي أنشأتها.'
+          : 'You can only edit tasks you created or are assigned to.'
+      );
       return;
     }
 
@@ -587,6 +616,10 @@ export default function ProjectDetailsPage() {
 
   const handleQuickStatusChange = async (taskOrId: Task | string, nextStatus: TaskStatus) => {
     if (!user) return;
+    if (isViewer) {
+      message.warning(isArabic ? 'المشاهد (Viewer) لديه صلاحية قراءة فقط.' : 'Viewers have read-only access.');
+      return;
+    }
     const taskId = typeof taskOrId === 'string' ? taskOrId : taskOrId.id;
     const oldTask = tasks.find((t) => t.id === taskId);
     if (!oldTask || oldTask.status === nextStatus) return;
@@ -662,6 +695,16 @@ export default function ProjectDetailsPage() {
 
   const handleDeleteTask = async (taskId: string) => {
     if (!user) return;
+    if (isViewer) {
+      message.warning(isArabic ? 'المشاهد (Viewer) لديه صلاحية قراءة فقط.' : 'Viewers have read-only access.');
+      return;
+    }
+    const targetTask = tasks.find((t) => t.id === taskId);
+    const canDelete = isOwner || isMaintainer || (targetTask && targetTask.createdBy === user?.uid);
+    if (!canDelete) {
+      message.error(isArabic ? 'لا تملك صلاحية حذف هذه المهمة.' : 'You do not have permission to delete this task.');
+      return;
+    }
     try {
       await DataService.deleteTask(projectId, taskId, user);
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
@@ -701,7 +744,7 @@ export default function ProjectDetailsPage() {
         width: 140,
         render: (status: TaskStatus, record: Task) => {
           const canEdit =
-            isOwner || record.createdBy === user?.uid || record.assigneeId === user?.uid;
+            !isViewer && (isOwner || isMaintainer || record.createdBy === user?.uid || record.assigneeId === user?.uid);
           const color =
             status === 'done' ? 'success' : status === 'in_progress' ? 'processing' : 'default';
           const label = formatTaskStatus(status);
@@ -841,8 +884,9 @@ export default function ProjectDetailsPage() {
         width: 110,
         render: (_: any, record: Task) => {
           const canEdit =
-            isOwner || record.createdBy === user?.uid || record.assigneeId === user?.uid;
-          const canDelete = isOwner || record.createdBy === user?.uid;
+            !isViewer && (isOwner || isMaintainer || record.createdBy === user?.uid || record.assigneeId === user?.uid);
+          const canDelete =
+            !isViewer && (isOwner || isMaintainer || record.createdBy === user?.uid);
 
           return (
             <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
@@ -936,8 +980,8 @@ export default function ProjectDetailsPage() {
 
   // Helper card renderer passed into columns
   const renderKanbanCardItem = (task: Task) => {
-    const canEdit = isOwner || task.createdBy === user?.uid || task.assigneeId === user?.uid;
-    const canDelete = isOwner || task.createdBy === user?.uid;
+    const canEdit = !isViewer && (isOwner || isMaintainer || task.createdBy === user?.uid || task.assigneeId === user?.uid);
+    const canDelete = !isViewer && (isOwner || isMaintainer || task.createdBy === user?.uid);
     const isDragging = draggedTaskId === task.id;
 
     return (
@@ -1025,7 +1069,7 @@ export default function ProjectDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            {isOwner && (
+            {(isOwner || isMaintainer) && (
               <Tooltip title={t('projectSettingsTitle')}>
                 <Link href={`/projects/${project.id}/settings`}>
                   <Button icon={<SettingOutlined />} size="middle" className={STYLES.secondaryButton}>
@@ -1034,17 +1078,19 @@ export default function ProjectDetailsPage() {
                 </Link>
               </Tooltip>
             )}
-            <Tooltip title={t('addTask')}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                size="middle"
-                onClick={() => openCreateTaskModal('todo')}
-                className={STYLES.primaryGoldButton}
-              >
-                {t('addTask')}
-              </Button>
-            </Tooltip>
+            {!isViewer && (
+              <Tooltip title={t('addTask')}>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  size="middle"
+                  onClick={() => openCreateTaskModal('todo')}
+                  className={STYLES.primaryGoldButton}
+                >
+                  {t('addTask')}
+                </Button>
+              </Tooltip>
+            )}
           </div>
         </div>
 
@@ -1373,7 +1419,7 @@ export default function ProjectDetailsPage() {
               tasks={todoTasks}
               dragOverCol={dragOverCol}
               mobileKanbanCol={mobileKanbanCol}
-              showAddButton={true}
+              showAddButton={!isViewer}
               emptyMessage={t('noTasksInQueue')}
               dropMessage={`${t('dropHereToMove')} ${t('statusTodo')}`}
               onAddTask={() => openCreateTaskModal('todo')}
