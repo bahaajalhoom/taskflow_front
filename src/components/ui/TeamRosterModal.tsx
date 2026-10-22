@@ -332,17 +332,6 @@ export default function TeamRosterModal({
                 </div>
               </div>
             </div>
-
-            {canManage && (
-              <Button
-                icon={<MailOutlined />}
-                size="middle"
-                onClick={() => setBulkModalOpen(true)}
-                className="border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD] font-semibold text-xs sm:text-sm bg-white dark:bg-[#1C1A17]"
-              >
-                {isArabic ? 'دعوات مجمعة' : 'Send Bulk Invites'}
-              </Button>
-            )}
           </div>
         }
       >
