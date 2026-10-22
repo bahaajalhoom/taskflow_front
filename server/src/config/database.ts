@@ -130,6 +130,38 @@ export async function initDatabase(): Promise<void> {
     );
   `);
 
+  // 6. Project Messages (Team Chat)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS project_messages (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      sender_email TEXT NOT NULL,
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 7. Project Meetings (Live Video & Audio Rooms)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS project_meetings (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      room_url TEXT NOT NULL,
+      host_id TEXT NOT NULL,
+      host_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
   // فهارس لتحسين سرعة الاستعلامات والكانبان ولوحة التحكم
   await dbRun('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);');
@@ -138,6 +170,8 @@ export async function initDatabase(): Promise<void> {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON tasks(assignee_id);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_tasks_proj_status ON tasks(project_id, status);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_messages_project ON project_messages(project_id, created_at);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_meetings_project ON project_meetings(project_id);');
 
   // Seed default demonstration users only if explicitly requested
   if (process.env.SEED_DEMO_DATA === 'true') {

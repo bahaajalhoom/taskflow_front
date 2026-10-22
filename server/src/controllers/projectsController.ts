@@ -3,7 +3,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthenticatedRequest, Project, ProjectMemberDetail } from '../types/index.js';
 import { dbAll, dbGet, dbRun } from '../config/database.js';
 import { AppError } from '../middlewares/errorHandler.js';
-import { createProjectSchema, updateProjectSchema, addMemberSchema, updateMemberRoleSchema } from '../validators/schemas.js';
+import {
+  createProjectSchema,
+  updateProjectSchema,
+  addMemberSchema,
+  updateMemberRoleSchema,
+  createMessageSchema,
+  updateMeetingSchema,
+} from '../validators/schemas.js';
 
 interface DBProject {
   id: string;
@@ -498,6 +505,232 @@ export const removeMember = async (
       memberIds,
       memberDetails,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ============================================================================
+// Team Chat & Live Conference Controllers
+// ============================================================================
+
+interface DBMessageRow {
+  id: string;
+  project_id: string;
+  user_id: string;
+  sender_name: string;
+  sender_email: string;
+  content: string;
+  created_at: string;
+}
+
+interface DBMeetingRow {
+  id: string;
+  project_id: string;
+  title: string;
+  room_url: string;
+  host_id: string;
+  host_name: string;
+  status: 'active' | 'scheduled' | 'ended';
+  created_at: string;
+  updated_at: string;
+}
+
+async function checkProjectAccess(projectId: string, userId: string): Promise<DBProject> {
+  const project = await dbGet<DBProject>(
+    `SELECT id, name, description, owner_id, created_at, updated_at FROM projects WHERE id = ?`,
+    [projectId]
+  );
+  if (!project) {
+    throw new AppError(404, 'Project not found.', 'NOT_FOUND');
+  }
+  if (project.owner_id === userId) {
+    return project;
+  }
+  const membership = await dbGet<{ user_id: string }>(
+    `SELECT user_id FROM project_members WHERE project_id = ? AND user_id = ?`,
+    [projectId, userId]
+  );
+  if (!membership) {
+    throw new AppError(403, 'You do not have permission to access this project.', 'FORBIDDEN');
+  }
+  return project;
+}
+
+export const getProjectMessages = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const rows = await dbAll<DBMessageRow>(
+      `SELECT id, project_id, user_id, sender_name, sender_email, content, created_at
+       FROM project_messages
+       WHERE project_id = ?
+       ORDER BY created_at ASC
+       LIMIT 150`,
+      [id]
+    );
+
+    const messages = rows.map((r) => ({
+      id: r.id,
+      projectId: r.project_id,
+      userId: r.user_id,
+      senderName: r.sender_name,
+      senderEmail: r.sender_email,
+      content: r.content,
+      createdAt: r.created_at,
+    }));
+
+    res.status(200).json(messages);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createProjectMessage = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const user = req.user!;
+    await checkProjectAccess(id, userId);
+
+    const parsed = createMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.issues[0]?.message || 'Invalid message payload.', 'VALIDATION_ERROR');
+    }
+
+    const messageId = uuidv4();
+    const now = new Date().toISOString();
+    const senderName = user.displayName || user.email.split('@')[0] || 'Team Member';
+    const senderEmail = user.email;
+
+    await dbRun(
+      `INSERT INTO project_messages (id, project_id, user_id, sender_name, sender_email, content, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [messageId, id, userId, senderName, senderEmail, parsed.data.content, now]
+    );
+
+    const newMessage = {
+      id: messageId,
+      projectId: id,
+      userId,
+      senderName,
+      senderEmail,
+      content: parsed.data.content,
+      createdAt: now,
+    };
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getProjectMeeting = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const user = req.user!;
+    const project = await checkProjectAccess(id, userId);
+
+    let meeting = await dbGet<DBMeetingRow>(
+      `SELECT id, project_id, title, room_url, host_id, host_name, status, created_at, updated_at
+       FROM project_meetings WHERE project_id = ?`,
+      [id]
+    );
+
+    if (!meeting) {
+      const meetingId = uuidv4();
+      const now = new Date().toISOString();
+      const cleanProjectName = project.name.replace(/[^a-zA-Z0-9]/g, '') || 'Project';
+      const cleanId = id.replace(/-/g, '').slice(0, 10);
+      const roomUrl = `https://meet.jit.si/TaskFlow-${cleanProjectName}-${cleanId}`;
+      const hostName = user.displayName || 'Project Lead';
+
+      await dbRun(
+        `INSERT INTO project_meetings (id, project_id, title, room_url, host_id, host_name, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [meetingId, id, `${project.name} - Official Standup`, roomUrl, userId, hostName, 'active', now, now]
+      );
+
+      meeting = {
+        id: meetingId,
+        project_id: id,
+        title: `${project.name} - Official Standup`,
+        room_url: roomUrl,
+        host_id: userId,
+        host_name: hostName,
+        status: 'active',
+        created_at: now,
+        updated_at: now,
+      };
+    }
+
+    res.status(200).json({
+      id: meeting.id,
+      projectId: meeting.project_id,
+      title: meeting.title,
+      roomUrl: meeting.room_url,
+      hostId: meeting.host_id,
+      hostName: meeting.host_name,
+      status: meeting.status,
+      createdAt: meeting.created_at,
+      updatedAt: meeting.updated_at,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProjectMeeting = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const parsed = updateMeetingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.issues[0]?.message || 'Invalid meeting payload.', 'VALIDATION_ERROR');
+    }
+
+    const now = new Date().toISOString();
+    if (parsed.data.title) {
+      await dbRun(
+        `UPDATE project_meetings SET title = ?, updated_at = ? WHERE project_id = ?`,
+        [parsed.data.title, now, id]
+      );
+    }
+    if (parsed.data.status) {
+      await dbRun(
+        `UPDATE project_meetings SET status = ?, updated_at = ? WHERE project_id = ?`,
+        [parsed.data.status, now, id]
+      );
+    }
+
+    const updated = await dbGet<DBMeetingRow>(
+      `SELECT id, project_id, title, room_url, host_id, host_name, status, created_at, updated_at
+       FROM project_meetings WHERE project_id = ?`,
+      [id]
+    );
+
+    res.status(200).json(updated);
   } catch (error) {
     next(error);
   }

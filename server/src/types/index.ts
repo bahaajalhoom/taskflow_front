@@ -54,6 +54,28 @@ export interface AuthenticatedRequest extends Request {
   user?: UserProfile;
 }
 
+export interface ChatMessage {
+  id: string;
+  projectId: string;
+  userId: string;
+  senderName: string;
+  senderEmail: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface MeetingSession {
+  id: string;
+  projectId: string;
+  title: string;
+  roomUrl: string;
+  hostId: string;
+  hostName: string;
+  status: 'active' | 'scheduled' | 'ended';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AuthTokens {
   token: string;
   user: UserProfile;

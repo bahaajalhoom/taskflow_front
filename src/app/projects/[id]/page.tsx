@@ -27,6 +27,8 @@ import {
   BugOutlined,
   RocketOutlined,
   ThunderboltOutlined,
+  MessageOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import {
   Card,
@@ -67,6 +69,14 @@ const TaskDetailDrawer = dynamic(
 );
 const ProjectTimelineView = dynamic(
   () => import('@/components/kanban/ProjectTimelineView'),
+  { ssr: false }
+);
+const ProjectChatView = dynamic(
+  () => import('@/components/chat/ProjectChatView'),
+  { ssr: false }
+);
+const ProjectMeetingView = dynamic(
+  () => import('@/components/meeting/ProjectMeetingView'),
   { ssr: false }
 );
 
@@ -148,7 +158,7 @@ const STYLES = {
 // ============================================================================
 // 3. TYPES & INTERFACES
 // ============================================================================
-type ViewMode = 'kanban' | 'table' | 'timeline';
+type ViewMode = 'kanban' | 'table' | 'timeline' | 'chat' | 'meeting';
 type MobileKanbanColumn = 'todo' | 'in_progress' | 'done';
 type SortByOption = 'default' | 'priority' | 'due_date' | 'title';
 
@@ -1196,6 +1206,25 @@ export default function ProjectDetailsPage() {
                   ),
                   icon: <CalendarOutlined className="text-xs sm:text-sm" />,
                 },
+                {
+                  value: 'chat',
+                  label: (
+                    <span className="font-semibold text-xs sm:text-sm px-1">
+                      {isArabic ? 'شات الفريق' : 'Team Chat'}
+                    </span>
+                  ),
+                  icon: <MessageOutlined className="text-xs sm:text-sm" />,
+                },
+                {
+                  value: 'meeting',
+                  label: (
+                    <span className="font-semibold text-xs sm:text-sm px-1 flex items-center gap-1.5">
+                      <span>{isArabic ? 'غرفة الاجتماع' : 'Meeting'}</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    </span>
+                  ),
+                  icon: <VideoCameraOutlined className="text-xs sm:text-sm" />,
+                },
               ]}
             />
           </div>
@@ -1479,7 +1508,7 @@ export default function ProjectDetailsPage() {
             })}
           />
         </Card>
-      ) : (
+      ) : viewMode === 'timeline' ? (
         /* Horizon Timeline View */
         <ProjectTimelineView
           tasks={filteredTasks}
@@ -1491,6 +1520,12 @@ export default function ProjectDetailsPage() {
           onStatusChange={handleQuickStatusChange}
           onCreateTask={() => openCreateTaskModal('todo')}
         />
+      ) : viewMode === 'chat' ? (
+        /* Team Workspace Chat */
+        <ProjectChatView project={project} currentUser={user} />
+      ) : (
+        /* Official Live Conference & Meeting Room */
+        <ProjectMeetingView project={project} currentUser={user} />
       )}
 
       {/* Task Creation & Edit Modal */}

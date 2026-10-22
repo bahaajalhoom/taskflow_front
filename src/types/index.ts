@@ -89,3 +89,25 @@ export interface DueSoonTaskItem {
   priority: TaskPriority;
   dueDate: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  projectId: string;
+  userId: string;
+  senderName: string;
+  senderEmail: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface MeetingSession {
+  id: string;
+  projectId: string;
+  title: string;
+  roomUrl: string;
+  hostId: string;
+  hostName: string;
+  status: 'active' | 'scheduled' | 'ended';
+  createdAt: string;
+  updatedAt?: string;
+}
