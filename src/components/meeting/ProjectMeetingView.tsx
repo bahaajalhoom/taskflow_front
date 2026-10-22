@@ -32,9 +32,18 @@ import { useLanguage } from '@/context/LanguageContext';
 
 // ============================================================================
 // 2. منطقة التعديل السريع (Constants & Styles)
-// ألوان وأسطح متباينة مبنية على توكنز CSS القياسية مع خلو تام من الإيموجي
+// خوادم STUN القياسية العالمية وتوكينات CSS مع خلو تام من الإيموجي
 // ============================================================================
-const HEARTBEAT_INTERVAL_MS = 5000;
+const HEARTBEAT_INTERVAL_MS = 2000;
+const SIGNAL_POLL_INTERVAL_MS = 1000;
+
+const RTC_CONFIG: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+  ],
+};
 
 const STYLES = {
   container:
@@ -48,7 +57,7 @@ const STYLES = {
   gridContainer:
     'w-full flex-1 min-h-[460px] rounded-xl border border-[var(--line)] bg-[#090D16] p-3 sm:p-4 grid gap-3 items-stretch relative overflow-hidden shadow-inner',
   participantTile:
-    'relative rounded-xl border border-slate-800 bg-[#0F172A] overflow-hidden flex flex-col items-center justify-center transition-all duration-200 shadow-md',
+    'relative rounded-xl border border-slate-800 bg-[#0F172A] overflow-hidden flex flex-col items-center justify-center transition-all duration-200 shadow-md min-h-[220px]',
   sidePanel:
     'lg:col-span-1 flex flex-col gap-3 rounded-xl border border-[var(--line)] bg-[var(--surface-2)]/30 p-3 sm:p-4',
   controlDock:
@@ -167,7 +176,7 @@ function AudioWaveMeter({
   );
 }
 
-// بطاقة مشارك في الاجتماع
+// بطاقة مشارك في الاجتماع (تعرض الفيديو الفعلي مع الصوت التلقائي للطرف البعيد)
 function ParticipantCard({
   name,
   isLocal,
@@ -190,10 +199,17 @@ function ParticipantCard({
   const videoElRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoElRef.current && videoStream && !isVideoOff) {
+    if (videoElRef.current && videoStream) {
       videoElRef.current.srcObject = videoStream;
+      videoElRef.current.play().catch(() => {});
     }
   }, [videoStream, isVideoOff]);
+
+  const hasVideoTrack =
+    videoStream &&
+    videoStream.getVideoTracks().length > 0 &&
+    videoStream.getVideoTracks()[0].enabled &&
+    !isVideoOff;
 
   return (
     <div
@@ -203,16 +219,19 @@ function ParticipantCard({
           : ''
       }`}
     >
-      {/* Video Stream or Avatar Placeholder */}
-      {!isVideoOff && videoStream ? (
-        <video
-          ref={videoElRef}
-          autoPlay
-          playsInline
-          muted={isLocal}
-          className={`w-full h-full object-cover ${isLocal ? 'scale-x-[-1]' : ''}`}
-        />
-      ) : (
+      {/* Video Element: IMPORTANT: isLocal is muted=true to prevent feedback echo; remote is muted=false so sound actually plays! */}
+      <video
+        ref={videoElRef}
+        autoPlay
+        playsInline
+        muted={isLocal}
+        className={`w-full h-full object-cover ${isLocal ? 'scale-x-[-1]' : ''} ${
+          hasVideoTrack ? 'block' : 'hidden'
+        }`}
+      />
+
+      {/* Avatar Placeholder if Video is Off or waiting */}
+      {!hasVideoTrack && (
         <div className="flex flex-col items-center justify-center p-6 text-center select-none">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-lg sm:text-2xl text-slate-200 mb-2 shadow-inner">
             {getInitials(name)}
@@ -223,30 +242,31 @@ function ParticipantCard({
                 ? 'الكاميرا مغلقة'
                 : 'Camera Off'
               : isArabic
-              ? 'بانتظار البث'
-              : 'Waiting for stream'}
+              ? 'بث صوتي مباشر'
+              : 'Voice Only'}
           </span>
         </div>
       )}
 
-      {/* Top Indicators */}
-      <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5">
+      {/* Top Indicators: Hand Raised */}
+      <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 z-10">
         {isHandRaised && (
-          <span className="px-2 py-0.5 rounded-md bg-amber-500/90 text-black text-[10px] font-mono font-bold animate-bounce shadow-sm flex items-center gap-1">
+          <span className="px-2.5 py-1 rounded-md bg-amber-500 text-black text-[11px] font-mono font-bold animate-bounce shadow-md flex items-center gap-1">
             <span>[HAND]</span>
             <span>{isArabic ? 'رفع اليد' : 'Raised'}</span>
           </span>
         )}
       </div>
 
-      <div className="absolute top-2.5 end-2.5">
+      {/* Top Right: Live Audio Spectrum */}
+      <div className="absolute top-2.5 end-2.5 z-10">
         {videoStream && !isMuted && (
           <AudioWaveMeter stream={videoStream} isMuted={isMuted} />
         )}
       </div>
 
       {/* Bottom Nameplate Bar */}
-      <div className="absolute bottom-2.5 start-2.5 end-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/75 border border-white/10 text-white text-xs backdrop-blur-xs">
+      <div className="absolute bottom-2.5 start-2.5 end-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/75 border border-white/10 text-white text-xs backdrop-blur-xs z-10">
         <div className="flex items-center gap-1.5 truncate">
           <span className="font-bold truncate">
             {name} {isLocal && `(${isArabic ? 'أنت' : 'You'})`}
@@ -285,16 +305,22 @@ export default function ProjectMeetingView({
   const [layout, setLayout] = useState<StageLayout>('grid');
   const [meetingDuration, setMeetingDuration] = useState(0);
 
-  // حالة الوسائط المباشرة
+  // حالة الوسائط المباشرة المحلية
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCamOff, setIsCamOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // تدفقات الكاميرا والشاشة
+  // تدفقات الكاميرا والشاشة المحلية
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+
+  // اتصالات WebRTC الحقيقية لكل زميل (Peer Connections & Remote Streams Map)
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const iceCandidatesQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
 
   // ميزة التسجيل الفعلي (Browser Native MediaRecorder API)
   const [isRecording, setIsRecording] = useState(false);
@@ -305,6 +331,7 @@ export default function ProjectMeetingView({
   // المشاركون في الاجتماع من الخادم
   const [participants, setParticipants] = useState<MeetingParticipant[]>([]);
   const peerIdRef = useRef<string>(`peer-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
+  const previousHandRaisedRef = useRef<Set<string>>(new Set());
 
   // مفتاح حفظ محضر الاجتماع
   const agendaStorageKey = `taskflow_meeting_agenda_${project.id}`;
@@ -341,6 +368,65 @@ export default function ProjectMeetingView({
     return () => clearInterval(t);
   }, [isRecording]);
 
+  // --------------------------------------------------------------------------
+  // دالة إنشاء أو جلب RTCPeerConnection لكل زميل في الاجتماع
+  // --------------------------------------------------------------------------
+  const getOrCreatePeerConnection = useCallback(
+    (targetPeerId: string): RTCPeerConnection => {
+      const existing = peerConnectionsRef.current.get(targetPeerId);
+      if (existing && existing.signalingState !== 'closed') {
+        return existing;
+      }
+
+      const pc = new RTCPeerConnection(RTC_CONFIG);
+      peerConnectionsRef.current.set(targetPeerId, pc);
+
+      // 1. إضافة المسارات المحلية (صوت + فيديو)
+      const currentStream = localStreamRef.current;
+      if (currentStream) {
+        currentStream.getTracks().forEach((track) => {
+          pc.addTrack(track, currentStream);
+        });
+      }
+
+      // 2. إرسال مرشحي ICE للطرف الآخر عبر الخادم
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          DataService.sendMeetingSignal(project.id, {
+            fromPeerId: peerIdRef.current,
+            toPeerId: targetPeerId,
+            signalType: 'ice-candidate',
+            payload: e.candidate.toJSON(),
+          }).catch(() => {});
+        }
+      };
+
+      // 3. استلام مسار الصوت والفيديو الحقيقي من الزميل الآخر
+      pc.ontrack = (event) => {
+        const stream = event.streams[0] || new MediaStream([event.track]);
+        setRemoteStreams((prev) => ({
+          ...prev,
+          [targetPeerId]: stream,
+        }));
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          pc.close();
+          peerConnectionsRef.current.delete(targetPeerId);
+          setRemoteStreams((prev) => {
+            const next = { ...prev };
+            delete next[targetPeerId];
+            return next;
+          });
+        }
+      };
+
+      return pc;
+    },
+    [project.id]
+  );
+
   // تهيئة كاميرا وميكروفون المتصفح عند بدء الاجتماع
   const initLocalMedia = useCallback(async () => {
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
@@ -349,9 +435,11 @@ export default function ProjectMeetingView({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: true,
       });
-      setLocalStream(stream);
 
-      // ربط محلل الصوت لكشف من يتحدث (Active Speaker Detection)
+      setLocalStream(stream);
+      localStreamRef.current = stream;
+
+      // ربط المسار الصوتي لمراقبة الصوت للمستخدم الحالي
       try {
         const AudioCtx =
           window.AudioContext ||
@@ -387,7 +475,68 @@ export default function ProjectMeetingView({
     }
   }, [isArabic, message]);
 
-  // الانضمام لغرفة الاجتماع وإرسال النبضات الدورية
+  // --------------------------------------------------------------------------
+  // دورة فحص الإشارات WebRTC Signaling Poll (كل 1000ms)
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (!inCall) return;
+
+    const pollSignals = async () => {
+      try {
+        const signals = await DataService.getMeetingSignals(project.id, peerIdRef.current);
+        for (const sig of signals) {
+          const senderId = sig.fromPeerId;
+          const pc = getOrCreatePeerConnection(senderId);
+
+          if (sig.signalType === 'offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+
+            // معالجة أي مرشحات ICE كانت معلقة
+            const queued = iceCandidatesQueueRef.current.get(senderId) || [];
+            for (const cand of queued) {
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            }
+            iceCandidatesQueueRef.current.delete(senderId);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await DataService.sendMeetingSignal(project.id, {
+              fromPeerId: peerIdRef.current,
+              toPeerId: senderId,
+              signalType: 'answer',
+              payload: answer,
+            });
+          } else if (sig.signalType === 'answer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+
+            const queued = iceCandidatesQueueRef.current.get(senderId) || [];
+            for (const cand of queued) {
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            }
+            iceCandidatesQueueRef.current.delete(senderId);
+          } else if (sig.signalType === 'ice-candidate') {
+            if (pc.remoteDescription) {
+              await pc.addIceCandidate(new RTCIceCandidate(sig.payload)).catch(() => {});
+            } else {
+              const q = iceCandidatesQueueRef.current.get(senderId) || [];
+              q.push(sig.payload);
+              iceCandidatesQueueRef.current.set(senderId, q);
+            }
+          }
+        }
+      } catch {
+        // ignore polling network errors
+      }
+    };
+
+    const sigInterval = setInterval(pollSignals, SIGNAL_POLL_INTERVAL_MS);
+    return () => clearInterval(sigInterval);
+  }, [inCall, project.id, getOrCreatePeerConnection]);
+
+  // --------------------------------------------------------------------------
+  // دورة النبضات الدورية واكتشاف الأقران الجدد (Heartbeat & Peer Discovery)
+  // --------------------------------------------------------------------------
   useEffect(() => {
     if (!inCall) return;
     initLocalMedia();
@@ -397,35 +546,92 @@ export default function ProjectMeetingView({
       peerId,
       isMuted: isMicMuted,
       isVideoOff: isCamOff,
-      isScreenSharing: false,
+      isScreenSharing,
     }).catch(() => {});
 
-    // نبضات كل 5 ثوانٍ لتحديث الحالة واستبعاد المنقطعين
-    const hb = setInterval(() => {
-      DataService.sendMeetingHeartbeat(project.id, {
-        peerId,
-        isMuted: isMicMuted,
-        isVideoOff: isCamOff,
-        isScreenSharing,
-        isHandRaised,
-      }).catch(() => {});
+    const hb = setInterval(async () => {
+      try {
+        await DataService.sendMeetingHeartbeat(project.id, {
+          peerId,
+          isMuted: isMicMuted,
+          isVideoOff: isCamOff,
+          isScreenSharing,
+          isHandRaised,
+        });
 
-      DataService.getMeetingParticipants(project.id)
-        .then((list) => setParticipants(list))
-        .catch(() => {});
+        const list = await DataService.getMeetingParticipants(project.id);
+        setParticipants(list);
+
+        // تنبيه صوتي / إشعار عند رفع أي زميل ليده
+        for (const p of list) {
+          if (p.peerId !== peerId) {
+            if (p.isHandRaised && !previousHandRaisedRef.current.has(p.peerId)) {
+              message.info(
+                isArabic
+                  ? `${p.displayName} رفع يده للمشاركة في النقاش.`
+                  : `${p.displayName} raised their hand.`
+              );
+            }
+            if (p.isHandRaised) {
+              previousHandRaisedRef.current.add(p.peerId);
+            } else {
+              previousHandRaisedRef.current.delete(p.peerId);
+            }
+          }
+        }
+
+        // إنشاء اتصال WebRTC Offer مع أي زميل جديد (حسب الترتيب المحدد للمبادر)
+        for (const peer of list) {
+          if (peer.peerId !== peerId) {
+            // المعيار الحتمي: المعرف الأصغر يرسل الـ Offer
+            if (peerId < peer.peerId) {
+              if (!peerConnectionsRef.current.has(peer.peerId)) {
+                const pc = getOrCreatePeerConnection(peer.peerId);
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                await DataService.sendMeetingSignal(project.id, {
+                  fromPeerId: peerId,
+                  toPeerId: peer.peerId,
+                  signalType: 'offer',
+                  payload: offer,
+                });
+              }
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
     }, HEARTBEAT_INTERVAL_MS);
 
     return () => {
       clearInterval(hb);
       DataService.leaveMeetingSession(project.id, peerId).catch(() => {});
     };
-  }, [project.id, inCall, initLocalMedia, isMicMuted, isCamOff, isScreenSharing, isHandRaised]);
+  }, [
+    project.id,
+    inCall,
+    initLocalMedia,
+    isMicMuted,
+    isCamOff,
+    isScreenSharing,
+    isHandRaised,
+    getOrCreatePeerConnection,
+    isArabic,
+    message,
+  ]);
 
-  // إيقاف جميع التدفقات عند الخروج
+  // إيقاف جميع التدفقات والاتصالات عند الخروج
   const terminateMedia = useCallback(() => {
+    peerConnectionsRef.current.forEach((pc) => pc.close());
+    peerConnectionsRef.current.clear();
+    setRemoteStreams({});
+
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
       setLocalStream(null);
+      localStreamRef.current = null;
     }
     if (screenStream) {
       screenStream.getTracks().forEach((t) => t.stop());
@@ -470,7 +676,7 @@ export default function ProjectMeetingView({
     }
   };
 
-  // مشاركة الشاشة الحقيقية عبر WebRTC
+  // مشاركة الشاشة الحقيقية وبثها فورياً لكل الأقران عبر RTCPeerConnection replaceTrack
   const handleToggleScreenShare = async () => {
     if (isScreenSharing) {
       if (screenStream) {
@@ -478,6 +684,15 @@ export default function ProjectMeetingView({
         setScreenStream(null);
       }
       setIsScreenSharing(false);
+
+      // استعادة مسار الكاميرا إلى اتصالات الأقران
+      const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+      peerConnectionsRef.current.forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+        if (sender && camTrack) {
+          sender.replaceTrack(camTrack).catch(() => {});
+        }
+      });
       return;
     }
 
@@ -496,12 +711,29 @@ export default function ProjectMeetingView({
       setIsScreenSharing(true);
       setLayout('spotlight');
 
-      displayStream.getVideoTracks()[0].onended = () => {
+      const screenTrack = displayStream.getVideoTracks()[0];
+
+      // استبدال مسار الفيديو الفعلي في كل اتصالات WebRTC الحية
+      peerConnectionsRef.current.forEach((pc) => {
+        const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(screenTrack).catch(() => {});
+        }
+      });
+
+      screenTrack.onended = () => {
         setIsScreenSharing(false);
         setScreenStream(null);
+        const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
+        peerConnectionsRef.current.forEach((pc) => {
+          const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
+          if (sender && camTrack) {
+            sender.replaceTrack(camTrack).catch(() => {});
+          }
+        });
       };
 
-      message.success(isArabic ? 'بدأت مشاركة الشاشة بنجاح.' : 'Screen sharing active.');
+      message.success(isArabic ? 'بدأت مشاركة الشاشة الحقيقية مع جميع الأعضاء.' : 'Screen sharing active.');
     } catch {
       setIsScreenSharing(false);
     }
@@ -531,7 +763,6 @@ export default function ProjectMeetingView({
       return;
     }
 
-    // تجهيز مسارات التسجيل من الشاشة أو الكاميرا
     const streamToRecord = screenStream || localStream;
     if (!streamToRecord) {
       message.warning(
@@ -583,10 +814,17 @@ export default function ProjectMeetingView({
     message.success(isArabic ? 'تم نسخ رابط غرفة الاجتماع المباشر.' : 'Direct meeting link copied.');
   };
 
-  // قائمة المشاركين المكتشفين من الخادم (باستثناء المستخدم الحالي)
+  // قائمة الزملاء المتصلين من الخادم
   const remoteParticipants = participants.filter((p) => p.peerId !== peerIdRef.current);
 
-  // إذا لم يكن متصلا بعد بالاجتماع
+  // التحقق إن كان هناك أي زميل يشارك شاشته حالياً
+  const remoteScreenSharer = remoteParticipants.find((p) => p.isScreenSharing);
+  const activeSpotlightStream = isScreenSharing
+    ? screenStream
+    : remoteScreenSharer
+    ? remoteStreams[remoteScreenSharer.peerId]
+    : null;
+
   if (!inCall) {
     return (
       <div className="flex flex-col items-center justify-center p-12 rounded-xl border border-[var(--line)] bg-[var(--surface)] text-center min-h-[460px]">
@@ -640,7 +878,7 @@ export default function ProjectMeetingView({
               </span>
             </div>
             <p className="text-xs text-[var(--text-2)] m-0 mt-0.5">
-              {project.name} • {isArabic ? 'نظام مؤتمرات WebRTC حقيقي مبني ذاتياً' : 'Native WebRTC Multi-Participant Engine'}
+              {project.name} • {isArabic ? 'بث WebRTC حقيقي فوري للصوت والفيديو ومشاركة الشاشة' : 'Real-time WebRTC Audio, Video & Screen Mesh'}
             </p>
           </div>
         </div>
@@ -648,7 +886,7 @@ export default function ProjectMeetingView({
         {/* Layout & Copy Link */}
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-lg border border-[var(--line)] p-0.5 bg-[var(--surface)]">
-            <Tooltip title={isArabic ? 'عرض الشبكة' : 'Grid Layout'}>
+            <Tooltip title={isArabic ? 'عرض الشبكة المتوازنة' : 'Grid Layout'}>
               <button
                 type="button"
                 className={`p-1.5 rounded-md text-xs transition-colors cursor-pointer ${
@@ -690,23 +928,35 @@ export default function ProjectMeetingView({
       <div className={STYLES.mainStage}>
         {/* Video Tiles Grid */}
         <div className={STYLES.videoStage}>
-          {isScreenSharing && (
+          {/* Spotlight Presentation Stage (If screen sharing is active by local or remote peer) */}
+          {(isScreenSharing || remoteScreenSharer) && (
             <div className="w-full h-72 sm:h-96 rounded-xl border border-[var(--line)] bg-black overflow-hidden relative shadow-md">
               <video
                 ref={(el) => {
-                  if (el && screenStream) el.srcObject = screenStream;
+                  if (el && activeSpotlightStream) {
+                    el.srcObject = activeSpotlightStream;
+                    el.play().catch(() => {});
+                  }
                 }}
                 autoPlay
                 playsInline
+                muted={isScreenSharing}
                 className="w-full h-full object-contain"
               />
               <div className="absolute top-3 start-3 px-3 py-1 rounded-md bg-black/75 border border-white/20 text-white text-xs font-mono font-bold flex items-center gap-1.5 backdrop-blur-xs">
                 <DesktopOutlined className="text-emerald-400" />
-                {isArabic ? 'شاشتك قيد البث المباشر لجميع الأعضاء' : 'Live Screen Presentation'}
+                {isScreenSharing
+                  ? isArabic
+                    ? 'شاشتك قيد البث المباشر لجميع الأعضاء'
+                    : 'Your Live Screen Presentation'
+                  : isArabic
+                  ? `بث شاشة: ${remoteScreenSharer?.displayName}`
+                  : `Screen shared by: ${remoteScreenSharer?.displayName}`}
               </div>
             </div>
           )}
 
+          {/* Grid Container for Camera Tiles */}
           <div
             className={`${STYLES.gridContainer} ${
               layout === 'spotlight'
@@ -730,34 +980,37 @@ export default function ProjectMeetingView({
               isArabic={isArabic}
             />
 
-            {/* 2. Remote Participants from Server */}
-            {remoteParticipants.map((peer) => (
-              <ParticipantCard
-                key={peer.id}
-                name={peer.displayName}
-                isLocal={false}
-                isMuted={peer.isMuted}
-                isVideoOff={peer.isVideoOff}
-                isHandRaised={peer.isHandRaised}
-                isSpeaking={false}
-                videoStream={null}
-                isArabic={isArabic}
-              />
-            ))}
+            {/* 2. Remote Participants with REAL WebRTC Video & Audio Streams */}
+            {remoteParticipants.map((peer) => {
+              const peerStream = remoteStreams[peer.peerId] || null;
+              return (
+                <ParticipantCard
+                  key={peer.id}
+                  name={peer.displayName}
+                  isLocal={false}
+                  isMuted={peer.isMuted}
+                  isVideoOff={peer.isVideoOff}
+                  isHandRaised={peer.isHandRaised}
+                  isSpeaking={false}
+                  videoStream={peerStream}
+                  isArabic={isArabic}
+                />
+              );
+            })}
 
-            {/* In case user is alone in the room: show interactive invite helper tile */}
+            {/* In case user is alone in the room */}
             {remoteParticipants.length === 0 && (
               <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/30 flex flex-col items-center justify-center p-6 text-center select-none">
                 <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 text-lg mb-2">
                   <TeamOutlined />
                 </div>
                 <h4 className="font-bold text-xs sm:text-sm text-slate-300 mb-1">
-                  {isArabic ? 'أنت الوحيد في غرفة الاجتماع حالياً' : 'You are currently alone in the room'}
+                  {isArabic ? 'أنت في غرفة الاجتماع حالياً' : 'You are in the room'}
                 </h4>
                 <p className="text-[11px] text-slate-500 max-w-xs m-0 mb-3">
                   {isArabic
-                    ? 'شارك رابط الاجتماع مع زملائك، وسيظهرون في شبكة الفيديو هنا فور انضمامهم.'
-                    : 'Share the meeting link with teammates. Their live feeds will populate this grid instantly.'}
+                    ? 'شارك الرابط مع أي زميل وسيظهر فيديو وبث صوته الحقيقي هنا فور انضمامه.'
+                    : 'Share the link with any teammate. Their real video and audio stream will play here immediately.'}
                 </p>
                 <Button
                   size="small"
@@ -821,13 +1074,13 @@ export default function ProjectMeetingView({
                     <div className="w-6 h-6 rounded-full bg-[var(--surface)] text-[var(--text-2)] font-bold text-[10px] flex items-center justify-center shrink-0 border border-[var(--line)]">
                       {peer.displayName.slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="text-[var(--text-2)] truncate">
+                    <span className="text-[var(--text-2)] truncate font-semibold">
                       {peer.displayName}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     {peer.isHandRaised && (
-                      <span className="text-[9px] font-mono text-amber-500 font-bold">
+                      <span className="text-[9px] font-mono text-amber-500 font-bold animate-pulse">
                         [HAND]
                       </span>
                     )}
