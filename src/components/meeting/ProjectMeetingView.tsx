@@ -2,7 +2,7 @@
 
 // ============================================================================
 // 1. الاستيرادات (Imports)
-// مكتبات React، أيقونات Ant Design، وتوكينات المشروع
+// مكتبات React وأيقونات Ant Design وتوكينات المشروع
 // ============================================================================
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -12,27 +12,21 @@ import {
   DesktopOutlined,
   PhoneOutlined,
   LinkOutlined,
-  CheckOutlined,
-  SettingOutlined,
   TeamOutlined,
   FileTextOutlined,
   FullscreenOutlined,
   AppstoreOutlined,
   PlayCircleOutlined,
   StopOutlined,
-  UserOutlined,
-  SoundOutlined,
-  InfoCircleOutlined,
-  ReloadOutlined,
 } from '@ant-design/icons';
-import { Button, Tooltip, App, Select, Input, Badge, Popconfirm } from 'antd';
-import { Project, UserProfile, MeetingParticipant, MeetingSignal } from '@/types';
+import { Button, Tooltip, App, Popconfirm } from 'antd';
+import { Project, UserProfile, MeetingParticipant } from '@/types';
 import { DataService } from '@/services/dataStore';
 import { useLanguage } from '@/context/LanguageContext';
 
 // ============================================================================
-// 2. منطقة التعديل السريع (Constants & Styles)
-// خوادم STUN القياسية العالمية وتوكينات CSS مع خلو تام من الإيموجي
+// 2. الثوابت وأنماط التنسيق (Constants & Styles)
+// خوادم STUN الموثوقة وتوكينات التصميم القياسية مع خلو تام من الإيموجي
 // ============================================================================
 const HEARTBEAT_INTERVAL_MS = 2000;
 const SIGNAL_POLL_INTERVAL_MS = 1000;
@@ -42,6 +36,8 @@ const RTC_CONFIG: RTCConfiguration = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
   ],
 };
 
@@ -102,6 +98,26 @@ function getInitials(name: string): string {
 // 5. المكونات الفرعية (Sub-Components)
 // ============================================================================
 
+// مخرج الصوت المستقل للطرف البعيد (يضمن بث الصوت حتى لو كانت الكاميرا مغلقة أو الفيديو مخفي)
+function RemoteAudioSink({ stream }: { stream: MediaStream }) {
+  const audioElRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audioEl = audioElRef.current;
+    if (audioEl && stream) {
+      audioEl.srcObject = stream;
+      const playPromise = audioEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay policy fallback
+        });
+      }
+    }
+  }, [stream]);
+
+  return <audio ref={audioElRef} autoPlay playsInline />;
+}
+
 // مقياس الصوت المباشر من خلال Web Audio API
 function AudioWaveMeter({
   stream,
@@ -133,6 +149,7 @@ function AudioWaveMeter({
 
       const source = ctx.createMediaStreamSource(new MediaStream([track]));
       source.connect(analyser);
+      // تنبيه: لا يتم الربط مع ctx.destination لمنع ارتداد الصوت والصدى
       audioCtxRef.current = ctx;
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
@@ -176,7 +193,7 @@ function AudioWaveMeter({
   );
 }
 
-// بطاقة مشارك في الاجتماع (تعرض الفيديو الفعلي مع الصوت التلقائي للطرف البعيد)
+// بطاقة مشارك في الاجتماع (تعرض الفيديو الفعلي مع إيقاف صوت عنصر الفيديو لمنع التكرار)
 function ParticipantCard({
   name,
   isLocal,
@@ -197,19 +214,47 @@ function ParticipantCard({
   isArabic: boolean;
 }) {
   const videoElRef = useRef<HTMLVideoElement>(null);
+  const [hasActiveVideoTrack, setHasActiveVideoTrack] = useState(false);
 
   useEffect(() => {
-    if (videoElRef.current && videoStream) {
-      videoElRef.current.srcObject = videoStream;
-      videoElRef.current.play().catch(() => {});
+    const videoEl = videoElRef.current;
+    if (!videoEl || !videoStream) {
+      setHasActiveVideoTrack(false);
+      return;
     }
-  }, [videoStream, isVideoOff]);
 
-  const hasVideoTrack =
-    videoStream &&
-    videoStream.getVideoTracks().length > 0 &&
-    videoStream.getVideoTracks()[0].enabled &&
-    !isVideoOff;
+    videoEl.srcObject = videoStream;
+    videoEl.play().catch(() => {});
+
+    const updateTrackState = () => {
+      const tracks = videoStream.getVideoTracks();
+      const firstTrack = tracks[0];
+      const isActive = Boolean(
+        firstTrack &&
+        firstTrack.enabled &&
+        firstTrack.readyState === 'live' &&
+        !isVideoOff
+      );
+      setHasActiveVideoTrack(isActive);
+    };
+
+    updateTrackState();
+
+    const videoTrack = videoStream.getVideoTracks()[0];
+    if (videoTrack) {
+      videoTrack.onmute = updateTrackState;
+      videoTrack.onunmute = updateTrackState;
+      videoTrack.onended = updateTrackState;
+    }
+
+    return () => {
+      if (videoTrack) {
+        videoTrack.onmute = null;
+        videoTrack.onunmute = null;
+        videoTrack.onended = null;
+      }
+    };
+  }, [videoStream, isVideoOff]);
 
   return (
     <div
@@ -219,19 +264,19 @@ function ParticipantCard({
           : ''
       }`}
     >
-      {/* Video Element: IMPORTANT: isLocal is muted=true to prevent feedback echo; remote is muted=false so sound actually plays! */}
+      {/* عنصر الفيديو: مكتوم دائما لمنع الصدى، حيث يتم تشغيل الصوت عبر RemoteAudioSink المستقل */}
       <video
         ref={videoElRef}
         autoPlay
         playsInline
-        muted={isLocal}
+        muted={true}
         className={`w-full h-full object-cover ${isLocal ? 'scale-x-[-1]' : ''} ${
-          hasVideoTrack ? 'block' : 'hidden'
+          hasActiveVideoTrack ? 'block' : 'hidden'
         }`}
       />
 
-      {/* Avatar Placeholder if Video is Off or waiting */}
-      {!hasVideoTrack && (
+      {/* الرمز التوضيحي البديل عند إيقاف الكاميرا */}
+      {!hasActiveVideoTrack && (
         <div className="flex flex-col items-center justify-center p-6 text-center select-none">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-bold text-lg sm:text-2xl text-slate-200 mb-2 shadow-inner">
             {getInitials(name)}
@@ -248,7 +293,7 @@ function ParticipantCard({
         </div>
       )}
 
-      {/* Top Indicators: Hand Raised */}
+      {/* مؤشر رفع اليد */}
       <div className="absolute top-2.5 start-2.5 flex items-center gap-1.5 z-10">
         {isHandRaised && (
           <span className="px-2.5 py-1 rounded-md bg-amber-500 text-black text-[11px] font-mono font-bold animate-bounce shadow-md flex items-center gap-1">
@@ -258,14 +303,14 @@ function ParticipantCard({
         )}
       </div>
 
-      {/* Top Right: Live Audio Spectrum */}
+      {/* طيف الصوت المباشر */}
       <div className="absolute top-2.5 end-2.5 z-10">
         {videoStream && !isMuted && (
           <AudioWaveMeter stream={videoStream} isMuted={isMuted} />
         )}
       </div>
 
-      {/* Bottom Nameplate Bar */}
+      {/* شريط معلومات المشارك السفلي */}
       <div className="absolute bottom-2.5 start-2.5 end-2.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/75 border border-white/10 text-white text-xs backdrop-blur-xs z-10">
         <div className="flex items-center gap-1.5 truncate">
           <span className="font-bold truncate">
@@ -312,17 +357,25 @@ export default function ProjectMeetingView({
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
+  // مرجع لتخزين أحدث حالة وسائط دون إعادة تشغيل الـ useEffect الخاصة بالاتصال
+  const meetingStateRef = useRef({
+    isMicMuted: false,
+    isCamOff: false,
+    isScreenSharing: false,
+    isHandRaised: false,
+  });
+
   // تدفقات الكاميرا والشاشة المحلية
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
 
-  // اتصالات WebRTC الحقيقية لكل زميل (Peer Connections & Remote Streams Map)
+  // اتصالات WebRTC الحقيقية لكل زميل
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const iceCandidatesQueueRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
 
-  // ميزة التسجيل الفعلي (Browser Native MediaRecorder API)
+  // ميزة التسجيل الفعلي عبر متصفح العميل
   const [isRecording, setIsRecording] = useState(false);
   const [recDuration, setRecDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -368,20 +421,22 @@ export default function ProjectMeetingView({
     return () => clearInterval(t);
   }, [isRecording]);
 
-  // --------------------------------------------------------------------------
-  // دالة إنشاء أو جلب RTCPeerConnection لكل زميل في الاجتماع
-  // --------------------------------------------------------------------------
+  // إنشاء أو جلب RTCPeerConnection
   const getOrCreatePeerConnection = useCallback(
     (targetPeerId: string): RTCPeerConnection => {
       const existing = peerConnectionsRef.current.get(targetPeerId);
-      if (existing && existing.signalingState !== 'closed') {
+      if (
+        existing &&
+        existing.connectionState !== 'closed' &&
+        existing.connectionState !== 'failed'
+      ) {
         return existing;
       }
 
       const pc = new RTCPeerConnection(RTC_CONFIG);
       peerConnectionsRef.current.set(targetPeerId, pc);
 
-      // 1. إضافة المسارات المحلية (صوت + فيديو)
+      // إضافة المسارات المحلية المتاحة حاليا
       const currentStream = localStreamRef.current;
       if (currentStream) {
         currentStream.getTracks().forEach((track) => {
@@ -389,7 +444,7 @@ export default function ProjectMeetingView({
         });
       }
 
-      // 2. إرسال مرشحي ICE للطرف الآخر عبر الخادم
+      // إرسال مرشحي ICE
       pc.onicecandidate = (e) => {
         if (e.candidate) {
           DataService.sendMeetingSignal(project.id, {
@@ -401,24 +456,35 @@ export default function ProjectMeetingView({
         }
       };
 
-      // 3. استلام مسار الصوت والفيديو الحقيقي من الزميل الآخر
+      // استقبال المسارات الحقيقية ودمجها بإنشاء كائن MediaStream جديد لضمان تحديث واجهة React
       pc.ontrack = (event) => {
-        const stream = event.streams[0] || new MediaStream([event.track]);
-        setRemoteStreams((prev) => ({
-          ...prev,
-          [targetPeerId]: stream,
-        }));
+        const incomingStream = event.streams[0] || new MediaStream([event.track]);
+        setRemoteStreams((prev) => {
+          const current = prev[targetPeerId];
+          let updatedTracks: MediaStreamTrack[] = [];
+          if (current) {
+            updatedTracks = [...current.getTracks()];
+            incomingStream.getTracks().forEach((trk) => {
+              const idx = updatedTracks.findIndex((t) => t.id === trk.id || t.kind === trk.kind);
+              if (idx >= 0) {
+                updatedTracks[idx] = trk;
+              } else {
+                updatedTracks.push(trk);
+              }
+            });
+          } else {
+            updatedTracks = incomingStream.getTracks();
+          }
+          return {
+            ...prev,
+            [targetPeerId]: new MediaStream(updatedTracks),
+          };
+        });
       };
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          pc.close();
-          peerConnectionsRef.current.delete(targetPeerId);
-          setRemoteStreams((prev) => {
-            const next = { ...prev };
-            delete next[targetPeerId];
-            return next;
-          });
+          // الحفاظ على التنظيف الآمن عند انقطاع الاتصال الفعلي
         }
       };
 
@@ -427,8 +493,39 @@ export default function ProjectMeetingView({
     [project.id]
   );
 
-  // تهيئة كاميرا وميكروفون المتصفح عند بدء الاجتماع
-  const initLocalMedia = useCallback(async () => {
+  // محلل مستوى الصوت المباشر لتفعيل إطار التحدث
+  const setupAudioAnalyzer = useCallback((stream: MediaStream) => {
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+
+      const track = stream.getAudioTracks()[0];
+      if (!track) return;
+
+      const source = ctx.createMediaStreamSource(new MediaStream([track]));
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const detectVoice = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+        setIsSpeaking(avg > 25);
+        requestAnimationFrame(detectVoice);
+      };
+      detectVoice();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // تهيئة كاميرا وميكروفون المتصفح عند بدء الغرفة
+  const startLocalMedia = useCallback(async () => {
     if (typeof window === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -439,127 +536,91 @@ export default function ProjectMeetingView({
       setLocalStream(stream);
       localStreamRef.current = stream;
 
-      // ربط المسار الصوتي لمراقبة الصوت للمستخدم الحالي
-      try {
-        const AudioCtx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-        const ctx = new AudioCtx();
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 64;
-        const track = stream.getAudioTracks()[0];
-        if (track) {
-          const source = ctx.createMediaStreamSource(new MediaStream([track]));
-          source.connect(analyser);
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-          const detectVoice = () => {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-            const avg = sum / dataArray.length;
-            setIsSpeaking(avg > 25);
-            requestAnimationFrame(detectVoice);
-          };
-          detectVoice();
-        }
-      } catch {
-        // ignore audio analyzer failure
+      // ضبط حالة الكتم الأولي
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !meetingStateRef.current.isMicMuted;
       }
-    } catch {
-      message.warning(
-        isArabic
-          ? 'تعذر الوصول إلى الكاميرا أو الميكروفون، يمكنك المتابعة في وضع الاستماع والمشاركة.'
-          : 'Could not access camera/mic, you can continue in listening mode.'
-      );
-    }
-  }, [isArabic, message]);
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !meetingStateRef.current.isCamOff;
+      }
 
-  // --------------------------------------------------------------------------
-  // دورة فحص الإشارات WebRTC Signaling Poll (كل 1000ms)
-  // --------------------------------------------------------------------------
-  useEffect(() => {
-    if (!inCall) return;
-
-    const pollSignals = async () => {
-      try {
-        const signals = await DataService.getMeetingSignals(project.id, peerIdRef.current);
-        for (const sig of signals) {
-          const senderId = sig.fromPeerId;
-          const pc = getOrCreatePeerConnection(senderId);
-
-          if (sig.signalType === 'offer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
-
-            // معالجة أي مرشحات ICE كانت معلقة
-            const queued = iceCandidatesQueueRef.current.get(senderId) || [];
-            for (const cand of queued) {
-              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
-            }
-            iceCandidatesQueueRef.current.delete(senderId);
-
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-
-            await DataService.sendMeetingSignal(project.id, {
-              fromPeerId: peerIdRef.current,
-              toPeerId: senderId,
-              signalType: 'answer',
-              payload: answer,
-            });
-          } else if (sig.signalType === 'answer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
-
-            const queued = iceCandidatesQueueRef.current.get(senderId) || [];
-            for (const cand of queued) {
-              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
-            }
-            iceCandidatesQueueRef.current.delete(senderId);
-          } else if (sig.signalType === 'ice-candidate') {
-            if (pc.remoteDescription) {
-              await pc.addIceCandidate(new RTCIceCandidate(sig.payload)).catch(() => {});
-            } else {
-              const q = iceCandidatesQueueRef.current.get(senderId) || [];
-              q.push(sig.payload);
-              iceCandidatesQueueRef.current.set(senderId, q);
+      // إضافة المسارات لأي اتصال peer تم إنشاؤه مسبقاً
+      peerConnectionsRef.current.forEach((pc) => {
+        stream.getTracks().forEach((track) => {
+          const senders = pc.getSenders();
+          const hasKind = senders.some((s) => s.track?.kind === track.kind);
+          if (!hasKind) {
+            pc.addTrack(track, stream);
+          } else {
+            const sender = senders.find((s) => s.track?.kind === track.kind);
+            if (sender) {
+              sender.replaceTrack(track).catch(() => {});
             }
           }
-        }
+        });
+      });
+
+      setupAudioAnalyzer(stream);
+    } catch {
+      // محاولة بديلة: صوت فقط إذا تعذرت الكاميرا
+      try {
+        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setLocalStream(audioOnlyStream);
+        localStreamRef.current = audioOnlyStream;
+        setIsCamOff(true);
+        meetingStateRef.current.isCamOff = true;
+
+        peerConnectionsRef.current.forEach((pc) => {
+          audioOnlyStream.getAudioTracks().forEach((track) => {
+            pc.addTrack(track, audioOnlyStream);
+          });
+        });
+
+        setupAudioAnalyzer(audioOnlyStream);
       } catch {
-        // ignore polling network errors
+        message.warning(
+          isArabic
+            ? 'تعذر الوصول إلى الكاميرا أو الميكروفون. يمكنك المتابعة في وضع الاستماع والمشاهدة.'
+            : 'Could not access camera/mic. You can continue in listening mode.'
+        );
       }
-    };
+    }
+  }, [isArabic, message, setupAudioAnalyzer]);
 
-    const sigInterval = setInterval(pollSignals, SIGNAL_POLL_INTERVAL_MS);
-    return () => clearInterval(sigInterval);
-  }, [inCall, project.id, getOrCreatePeerConnection]);
-
-  // --------------------------------------------------------------------------
-  // دورة النبضات الدورية واكتشاف الأقران الجدد (Heartbeat & Peer Discovery)
-  // --------------------------------------------------------------------------
+  // دورة حياة الاجتماع المستقرة (لا تعتمد على تبديل الأزرار لمنع الخروج أو التعارض)
   useEffect(() => {
     if (!inCall) return;
-    initLocalMedia();
 
+    let isMounted = true;
     const peerId = peerIdRef.current;
+
+    // 1. تسجيل الانضمام في الخادم
     DataService.joinMeetingSession(project.id, {
       peerId,
-      isMuted: isMicMuted,
-      isVideoOff: isCamOff,
-      isScreenSharing,
+      isMuted: meetingStateRef.current.isMicMuted,
+      isVideoOff: meetingStateRef.current.isCamOff,
+      isScreenSharing: meetingStateRef.current.isScreenSharing,
     }).catch(() => {});
 
-    const hb = setInterval(async () => {
+    // 2. بدء التقاط وسائط الجهاز
+    startLocalMedia();
+
+    // 3. دورة النبضات الدورية واكتشاف الأقران
+    const hbInterval = setInterval(async () => {
+      if (!isMounted) return;
       try {
         await DataService.sendMeetingHeartbeat(project.id, {
           peerId,
-          isMuted: isMicMuted,
-          isVideoOff: isCamOff,
-          isScreenSharing,
-          isHandRaised,
+          isMuted: meetingStateRef.current.isMicMuted,
+          isVideoOff: meetingStateRef.current.isCamOff,
+          isScreenSharing: meetingStateRef.current.isScreenSharing,
+          isHandRaised: meetingStateRef.current.isHandRaised,
         });
 
         const list = await DataService.getMeetingParticipants(project.id);
+        if (!isMounted) return;
         setParticipants(list);
 
         // تنبيه صوتي / إشعار عند رفع أي زميل ليده
@@ -580,23 +641,30 @@ export default function ProjectMeetingView({
           }
         }
 
-        // إنشاء اتصال WebRTC Offer مع أي زميل جديد (حسب الترتيب المحدد للمبادر)
+        // إنشاء اتصال Offer للزملاء الجدد حتميا
         for (const peer of list) {
           if (peer.peerId !== peerId) {
-            // المعيار الحتمي: المعرف الأصغر يرسل الـ Offer
-            if (peerId < peer.peerId) {
-              if (!peerConnectionsRef.current.has(peer.peerId)) {
-                const pc = getOrCreatePeerConnection(peer.peerId);
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
+            const existingPc = peerConnectionsRef.current.get(peer.peerId);
+            const needsConnection =
+              !existingPc ||
+              existingPc.connectionState === 'failed' ||
+              existingPc.connectionState === 'disconnected' ||
+              existingPc.connectionState === 'closed';
 
-                await DataService.sendMeetingSignal(project.id, {
-                  fromPeerId: peerId,
-                  toPeerId: peer.peerId,
-                  signalType: 'offer',
-                  payload: offer,
-                });
-              }
+            if (needsConnection && peerId < peer.peerId) {
+              const pc = getOrCreatePeerConnection(peer.peerId);
+              const offer = await pc.createOffer({
+                offerToReceiveAudio: true,
+                offerToReceiveVideo: true,
+              });
+              await pc.setLocalDescription(offer);
+
+              await DataService.sendMeetingSignal(project.id, {
+                fromPeerId: peerId,
+                toPeerId: peer.peerId,
+                signalType: 'offer',
+                payload: offer,
+              });
             }
           }
         }
@@ -605,44 +673,91 @@ export default function ProjectMeetingView({
       }
     }, HEARTBEAT_INTERVAL_MS);
 
+    // 4. دورة فحص إشارات WebRTC
+    const sigInterval = setInterval(async () => {
+      if (!isMounted) return;
+      try {
+        const signals = await DataService.getMeetingSignals(project.id, peerId);
+        if (!isMounted || !signals || signals.length === 0) return;
+
+        for (const sig of signals) {
+          const senderId = sig.fromPeerId;
+          const pc = getOrCreatePeerConnection(senderId);
+
+          if (sig.signalType === 'offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+
+            // تفريغ مرشحات ICE المعلقة
+            const queued = iceCandidatesQueueRef.current.get(senderId) || [];
+            for (const cand of queued) {
+              await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+            }
+            iceCandidatesQueueRef.current.delete(senderId);
+
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await DataService.sendMeetingSignal(project.id, {
+              fromPeerId: peerId,
+              toPeerId: senderId,
+              signalType: 'answer',
+              payload: answer,
+            });
+          } else if (sig.signalType === 'answer') {
+            if (pc.signalingState === 'have-local-offer') {
+              await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+
+              const queued = iceCandidatesQueueRef.current.get(senderId) || [];
+              for (const cand of queued) {
+                await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
+              }
+              iceCandidatesQueueRef.current.delete(senderId);
+            }
+          } else if (sig.signalType === 'ice-candidate') {
+            if (pc.remoteDescription && pc.remoteDescription.type) {
+              await pc.addIceCandidate(new RTCIceCandidate(sig.payload)).catch(() => {});
+            } else {
+              const q = iceCandidatesQueueRef.current.get(senderId) || [];
+              q.push(sig.payload);
+              iceCandidatesQueueRef.current.set(senderId, q);
+            }
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }, SIGNAL_POLL_INTERVAL_MS);
+
     return () => {
-      clearInterval(hb);
+      isMounted = false;
+      clearInterval(hbInterval);
+      clearInterval(sigInterval);
       DataService.leaveMeetingSession(project.id, peerId).catch(() => {});
     };
-  }, [
-    project.id,
-    inCall,
-    initLocalMedia,
-    isMicMuted,
-    isCamOff,
-    isScreenSharing,
-    isHandRaised,
-    getOrCreatePeerConnection,
-    isArabic,
-    message,
-  ]);
+  }, [inCall, project.id, getOrCreatePeerConnection, startLocalMedia, isArabic, message]);
 
-  // إيقاف جميع التدفقات والاتصالات عند الخروج
+  // إيقاف جميع التدفقات والاتصالات عند الخروج التام
   const terminateMedia = useCallback(() => {
     peerConnectionsRef.current.forEach((pc) => pc.close());
     peerConnectionsRef.current.clear();
     setRemoteStreams({});
 
-    if (localStream) {
-      localStream.getTracks().forEach((t) => t.stop());
-      setLocalStream(null);
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
+      setLocalStream(null);
     }
     if (screenStream) {
       screenStream.getTracks().forEach((t) => t.stop());
       setScreenStream(null);
       setIsScreenSharing(false);
+      meetingStateRef.current.isScreenSharing = false;
     }
     if (isRecording && mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  }, [localStream, screenStream, isRecording]);
+  }, [screenStream, isRecording]);
 
   useEffect(() => {
     return () => {
@@ -650,33 +765,71 @@ export default function ProjectMeetingView({
     };
   }, [terminateMedia]);
 
-  // التحكم في الميكروفون
+  // التحكم في كتم وتشغيل الميكروفون دون إعادة تهيئة الغرفة
   const handleToggleMic = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
+    const nextMuted = !isMicMuted;
+    setIsMicMuted(nextMuted);
+    meetingStateRef.current.isMicMuted = nextMuted;
+
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMicMuted(!audioTrack.enabled);
+        audioTrack.enabled = !nextMuted;
       }
-    } else {
-      setIsMicMuted(!isMicMuted);
     }
+
+    DataService.sendMeetingHeartbeat(project.id, {
+      peerId: peerIdRef.current,
+      isMuted: nextMuted,
+    }).catch(() => {});
   };
 
-  // التحكم في الكاميرا
-  const handleToggleCam = () => {
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
+  // التحكم في تشغيل وإيقاف الكاميرا دون تعارض
+  const handleToggleCam = async () => {
+    const nextCamOff = !isCamOff;
+    setIsCamOff(nextCamOff);
+    meetingStateRef.current.isCamOff = nextCamOff;
+
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsCamOff(!videoTrack.enabled);
+        videoTrack.enabled = !nextCamOff;
+      } else if (!nextCamOff) {
+        // طلب الكاميرا ديناميكيا إذا لم تكن مفعلة في البداية
+        try {
+          const camStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+          });
+          const newTrack = camStream.getVideoTracks()[0];
+          if (newTrack) {
+            localStreamRef.current.addTrack(newTrack);
+            setLocalStream(new MediaStream(localStreamRef.current.getTracks()));
+
+            peerConnectionsRef.current.forEach((pc) => {
+              const videoSender = pc.getSenders().find((s) => s.track?.kind === 'video');
+              if (videoSender) {
+                videoSender.replaceTrack(newTrack).catch(() => {});
+              } else {
+                pc.addTrack(newTrack, localStreamRef.current!);
+              }
+            });
+          }
+        } catch {
+          message.error(isArabic ? 'تعذر تشغيل الكاميرا.' : 'Could not access camera.');
+          setIsCamOff(true);
+          meetingStateRef.current.isCamOff = true;
+          return;
+        }
       }
-    } else {
-      setIsCamOff(!isCamOff);
     }
+
+    DataService.sendMeetingHeartbeat(project.id, {
+      peerId: peerIdRef.current,
+      isVideoOff: nextCamOff,
+    }).catch(() => {});
   };
 
-  // مشاركة الشاشة الحقيقية وبثها فورياً لكل الأقران عبر RTCPeerConnection replaceTrack
+  // مشاركة الشاشة وبثها فوريا لكل الأقران عبر RTCPeerConnection replaceTrack
   const handleToggleScreenShare = async () => {
     if (isScreenSharing) {
       if (screenStream) {
@@ -684,8 +837,9 @@ export default function ProjectMeetingView({
         setScreenStream(null);
       }
       setIsScreenSharing(false);
+      meetingStateRef.current.isScreenSharing = false;
 
-      // استعادة مسار الكاميرا إلى اتصالات الأقران
+      // استعادة مسار الكاميرا
       const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
       peerConnectionsRef.current.forEach((pc) => {
         const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
@@ -693,6 +847,11 @@ export default function ProjectMeetingView({
           sender.replaceTrack(camTrack).catch(() => {});
         }
       });
+
+      DataService.sendMeetingHeartbeat(project.id, {
+        peerId: peerIdRef.current,
+        isScreenSharing: false,
+      }).catch(() => {});
       return;
     }
 
@@ -709,20 +868,23 @@ export default function ProjectMeetingView({
 
       setScreenStream(displayStream);
       setIsScreenSharing(true);
+      meetingStateRef.current.isScreenSharing = true;
       setLayout('spotlight');
 
       const screenTrack = displayStream.getVideoTracks()[0];
 
-      // استبدال مسار الفيديو الفعلي في كل اتصالات WebRTC الحية
       peerConnectionsRef.current.forEach((pc) => {
         const sender = pc.getSenders().find((s) => s.track?.kind === 'video');
         if (sender) {
           sender.replaceTrack(screenTrack).catch(() => {});
+        } else {
+          pc.addTrack(screenTrack, displayStream);
         }
       });
 
       screenTrack.onended = () => {
         setIsScreenSharing(false);
+        meetingStateRef.current.isScreenSharing = false;
         setScreenStream(null);
         const camTrack = localStreamRef.current?.getVideoTracks()[0] || null;
         peerConnectionsRef.current.forEach((pc) => {
@@ -731,11 +893,22 @@ export default function ProjectMeetingView({
             sender.replaceTrack(camTrack).catch(() => {});
           }
         });
+
+        DataService.sendMeetingHeartbeat(project.id, {
+          peerId: peerIdRef.current,
+          isScreenSharing: false,
+        }).catch(() => {});
       };
+
+      DataService.sendMeetingHeartbeat(project.id, {
+        peerId: peerIdRef.current,
+        isScreenSharing: true,
+      }).catch(() => {});
 
       message.success(isArabic ? 'بدأت مشاركة الشاشة الحقيقية مع جميع الأعضاء.' : 'Screen sharing active.');
     } catch {
       setIsScreenSharing(false);
+      meetingStateRef.current.isScreenSharing = false;
     }
   };
 
@@ -743,6 +916,8 @@ export default function ProjectMeetingView({
   const handleToggleHand = () => {
     const nextVal = !isHandRaised;
     setIsHandRaised(nextVal);
+    meetingStateRef.current.isHandRaised = nextVal;
+
     DataService.sendMeetingHeartbeat(project.id, {
       peerId: peerIdRef.current,
       isHandRaised: nextVal,
@@ -753,7 +928,7 @@ export default function ProjectMeetingView({
     }
   };
 
-  // بدء وإيقاف تسجيل الاجتماع الفعلي (MediaRecorder API)
+  // تسجيل الاجتماع عبر MediaRecorder API
   const handleToggleRecording = () => {
     if (isRecording) {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -800,8 +975,7 @@ export default function ProjectMeetingView({
       mediaRecorderRef.current = rec;
       setIsRecording(true);
       message.success(isArabic ? 'بدأ تسجيل الاجتماع الفعلي.' : 'Recording started.');
-    } catch (err) {
-      console.error('MediaRecorder error:', err);
+    } catch {
       message.error(isArabic ? 'تعذر تفعيل مسجل الفيديو في المتصفح.' : 'Recording failed to start.');
     }
   };
@@ -852,6 +1026,13 @@ export default function ProjectMeetingView({
 
   return (
     <div className={STYLES.container}>
+      {/* مشغلات الصوت الخفية المستقلة لكل زميل لضمان وصول الصوت الفوري دون صدى */}
+      <div className="hidden" aria-hidden="true">
+        {Object.entries(remoteStreams).map(([targetPeerId, stream]) => (
+          <RemoteAudioSink key={targetPeerId} stream={stream} />
+        ))}
+      </div>
+
       {/* 1. Header */}
       <div className={STYLES.header}>
         <div className="flex items-center gap-3">
@@ -940,7 +1121,7 @@ export default function ProjectMeetingView({
                 }}
                 autoPlay
                 playsInline
-                muted={isScreenSharing}
+                muted={true}
                 className="w-full h-full object-contain"
               />
               <div className="absolute top-3 start-3 px-3 py-1 rounded-md bg-black/75 border border-white/20 text-white text-xs font-mono font-bold flex items-center gap-1.5 backdrop-blur-xs">
