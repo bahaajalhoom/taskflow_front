@@ -1,283 +1,233 @@
-# TaskFlow — Enterprise Project & Task Management Platform
+# TaskFlow - Enterprise Project and Task Management System
 
-[![Next.js 16.4.2](https://img.shields.io/badge/Next.js-16.4.2-black?logo=next.js)](https://nextjs.org/)
-[![React 19](https://img.shields.io/badge/React-19.0.0-blue?logo=react)](https://react.dev/)
-[![SQLite WAL](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?logo=sqlite)](https://www.sqlite.org/)
-[![TypeScript 5.6](https://img.shields.io/badge/TypeScript-5.6-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Design System](https://img.shields.io/badge/Design-Swiss%20Obsidian%20%26%20Pearl-gold)](./DESIGN.md)
-[![Zero AI Slop](https://img.shields.io/badge/Craft-Zero%20AI%20Slop-success)](#-anti-slop-design-charter)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15.0-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.0-blue?style=flat-square&logo=react)](https://react.dev/)
+[![Node.js 22](https://img.shields.io/badge/Node.js-22.x-green?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-4.x-black?style=flat-square&logo=express)](https://expressjs.com/)
+[![SQLite WAL](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57?style=flat-square&logo=sqlite)](https://www.sqlite.org/)
+[![TypeScript 5 Strict](https://img.shields.io/badge/TypeScript-5.x%20Strict-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS 3.4](https://img.shields.io/badge/TailwindCSS-3.4-38B2AC?style=flat-square&logo=tailwind-css)](https://tailwindcss.com/)
+[![Ant Design 5](https://img.shields.io/badge/Ant%20Design-5.x-0170FE?style=flat-square&logo=ant-design)](https://ant.design/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 
-> **TaskFlow** is a high-throughput, mission-critical engineering project and task management system built with **Next.js 16.4.2 (Turbopack)**, **React 19**, and a standalone **SQLite WAL-mode SQL Engine**. Engineered for fast-moving software squads that demand instant query responsiveness, strict RBAC governance, and handcrafted utilitarian aesthetics.
-
----
-
-## 📑 Table of Contents
-
-1. [Architectural Highlights](#-architectural-highlights)
-2. [Anti-Slop Design Charter & Swiss Tokens](#-anti-slop-design-charter)
-3. [Core Feature Matrix](#-core-feature-matrix)
-4. [Security Architecture & Hardening](#-security-architecture--hardening)
-5. [Complete REST API Specification](#-complete-rest-api-specification)
-6. [Project Structure](#-project-structure)
-7. [Installation & Local Setup](#-installation--local-setup)
-8. [Keyboard Shortcuts (Power-User Flow)](#-keyboard-shortcuts)
-9. [Bilingual Typography & RTL Support](#-bilingual-typography--rtl-support)
+Live Application: [taskflow.apps.taqat.academy](https://taskflow.apps.taqat.academy/)  
+Engineer Skills Portfolio: [skill-ps.apps.taqat.academy](https://skill-ps.apps.taqat.academy/)
 
 ---
 
-## ⚡ Architectural Highlights
+## Overview
 
-* **Sub-3ms Query Latency ($p99 < 2.4\text{ ms}$):** Powered by an independent SQLite 3 relational database running in Write-Ahead Logging (`PRAGMA journal_mode = WAL`) and strict foreign key cascading (`PRAGMA foreign_keys = ON`).
-* **Zero Vendor Lock-in & Complete Sovereignty:** 100% relational data ownership with zero dependency on proprietary third-party cloud silos.
-* **Modern React 19 & Next.js 16.4.2:** Runs on Turbopack with 0 console warnings, modern `App.useApp()` Ant Design v6 integration, and strict TypeScript verification.
-* **Cellular Network Signal Bars (`..ı`):** Bespoke priority pill badges inspired by precision hardware telemetry meters (1 bar = Low, 2 bars = Medium, 3 bars = High).
-* **Keyboard-First Ergonomics:** Global fuzzy Command Palette (`Cmd+K` / `Ctrl+K`), quick task search (`/`), and instant submission with `⌘+Enter` on all forms.
+TaskFlow is a production-grade, bilingual project execution platform designed for software teams that value speed, clarity, and architectural discipline. It combines an ultra-fast Next.js 15 frontend with a dedicated Node.js and SQLite WAL backend to deliver sub-10ms response times without cloud vendor lock-in.
+
+Built with an anti-slop design philosophy, TaskFlow replaces generic SaaS templates with a focused Swiss minimalist aesthetic, tactile micro-interactions, complete keyboard navigation, and genuine role-based access control.
 
 ---
 
-## 🎨 Anti-Slop Design Charter
+## Visual Showcase
 
-Governed by the **`using-frontend-noslop`** engineering skill, TaskFlow actively rejects generic AI-generated aesthetics:
+### Desktop Workspace and Hero
+![TaskFlow Desktop Hero](public/screenshots/hero_desktop.png)
 
-| What We Ban (AI Slop Floor) | What We Enforce (Craft Floor) |
-| :--- | :--- |
-| ❌ No purple-to-blue ambient glow gradients | ✅ Solid architectural surfaces with 1px hairline borders |
-| ❌ No floating background neon blur orbs | ✅ Tactile physical feedback (`active:scale-[0.98]`) |
-| ❌ No generic emojis as UI controls | ✅ 100% bespoke SVG vector line icons and signal indicators |
-| ❌ No decorative clutter or glassmorphism | ✅ High information density with monospace tabular IDs (`TF-101`) |
-| ❌ No broken cursive Arabic script | ✅ Dedicated optical scaling with `IBM Plex Sans Arabic` |
+### Obsidian Dark Mode Kanban Board
+![TaskFlow Kanban Board](public/screenshots/kanban_board.png)
 
-### Palette Tokens (Obsidian & Pearl)
+### Minimalist Authentication and Evaluation Personas
+![TaskFlow Login](public/screenshots/login_screen.png)
 
-* **Light Mode ("Pearl & Bronze"):**
-  * Canvas: `#F4F4F2` (Warm porcelain architectural tone)
-  * Surfaces: `#FFFFFF` (Solid, high-contrast cards)
-  * Hairline Borders: `#DDDAD3` (1px subtle grid separation)
-  * Accent: `#7A5818` (Tactile industrial bronze)
-  * Contrast Ratio: **14.2:1** (Exceeds WCAG AAA standard)
-* **Dark Mode ("Obsidian Ledger"):**
-  * Canvas: `#0C0B0A` (Deep graphite carbon)
-  * Surfaces: `#141211` & `#1C1A17` (Layered matte containers)
-  * Hairline Borders: `#2C2824`
-  * Accent: `#D4B26E` (Electric champagne gold)
-  * Contrast Ratio: **16.5:1** (Exceeds WCAG AAA standard)
+### Responsive Mobile Interface
+<p align="center">
+  <img src="public/screenshots/mobile_view.png" alt="TaskFlow Mobile View" width="380" />
+</p>
 
 ---
 
-## 🚀 Core Feature Matrix
+## Key Capabilities
 
-### 1. Interactive Kanban & Table Views
-* **3-Column Sprint Pipeline:** `To Do` ➔ `In Progress` ➔ `Done` with native HTML5 drag-and-drop.
-* **Strict Kanban Creation Rule:** The task creation button (`+`) is exclusively stationed on the `To Do` column header, keeping progression columns purely flow-based.
-* **Dual View Modes:** Seamlessly toggle between responsive Kanban board and structured, paginated Table view.
-* **Instant Filter Engine:** Multi-dimensional filtering by Assignee, Priority level, Overdue status, and title text query.
-* **Slide-Over Inspection Drawer:** Deep-dive into tasks with inline priority changes, assignee allocation, and due-date selection without modal friction.
+### 1. High-Velocity Kanban and Task Management
+- Three-column workflow: To Do, In Progress, and Done with smooth drag-and-drop mechanics.
+- Real-time task filtering by priority, assignee, status, and search query.
+- Monospace task keys (`TF-101`) and hardware-inspired priority signals (Low, Medium, High, Urgent).
+- Non-modal slide-over drawer for deep task inspection and inline editing.
 
-### 2. Project Lifecycle & Member Management
-* **Role-Based Access Control (RBAC):**
-  * **Owner:** Complete administrative authority, member management, metadata editing, and irreversible project deletion guarded by an exact name-confirmation modal.
-  * **Member / Engineer:** Task creation, card status drag-and-drop, and sprint execution.
-  * **Trainee / Viewer:** Read-only inspection with status update rights on assigned tickets.
-* **1-Click Evaluation Personas:** Instant testing on `/login` with pre-configured Admin, Engineer, and Viewer roles.
+### 2. Multi-Tier Role-Based Access Control (RBAC)
+- **Owner**: Full workspace authority, member invitation, role assignment, and project deletion.
+- **Maintainer**: Elevated team management, task orchestration, and sprint curation.
+- **Member**: Create, assign, and update personal workflow items.
+- **Viewer**: Read-only oversight with strict mutation guard rails.
 
----
+### 3. Full Bilingual Parity (Arabic RTL and English LTR)
+- Zero-latency layout switching between Arabic (IBM Plex Sans Arabic) and English.
+- Complete bidirectional alignment with optical spacing and zero clipped strings.
+- Localized date formatting, currency symbols, and status tags.
 
-## 🛡️ Security Architecture & Hardening
-
-Audited and fortified using **`security-auditor`** and **`security-and-hardening`**:
-
-1. **Multi-Tier Rate Limiting (Brute-Force & DoS Protection):**
-   * **Tier 1 (Cookie-Tracked):** Limits rapid registration attempts to 10 per 5-minute window via encrypted `taskflow_reg_tracker` cookie.
-   * **Tier 2 (IP-Escalated):** Blocks repeat offenders at the IP level for 30 minutes.
-   * **Login Throttle:** Strict `authRateLimiter` on `POST /api/auth/login` (10 requests per 15 minutes) preventing credential stuffing.
-2. **IDOR & Authorization Choke Points:**
-   * All task and project mutations verify project membership and ownership at the SQL level (`WHERE id = ? AND project_id = ?`).
-   * Assignees cannot maliciously modify titles, descriptions, or due dates of tasks they do not own; non-owner assignees are restricted to status transitions only.
-3. **100% Parameterized SQL Execution:**
-   * All dynamic SQL queries use SQLite `?` placeholders. Zero string interpolation prevents SQL injection.
-4. **Enterprise HTTP Headers (`helmet`):**
-   * `X-Frame-Options: DENY` (Anti-Clickjacking)
-   * `X-Content-Type-Options: nosniff` (Anti-MIME Sniffing)
-   * `Strict-Transport-Security` (HSTS enabled for 1 year with subdomains)
-   * Strict Content Security Policy (CSP).
+### 4. Enterprise-Grade Security and Resilience
+- 100% parameterized SQL queries protecting against injection vulnerabilities.
+- Dual-tier registration rate limiting using encrypted cookies and IP-level escalation.
+- Hardened HTTP response headers via Helmet (CSP, HSTS, X-Frame-Options).
+- Standardized RFC 9457 Problem Details error responses.
 
 ---
 
-## 📡 Complete REST API Specification
+## Technology Stack
 
-Backend service runs by default on `http://localhost:5001/api` with automatic client failover.
+### Frontend
+- **Framework**: Next.js 15 (App Router) + React 19
+- **Typography and Components**: Ant Design 5 + IBM Plex Sans Arabic + Cairo
+- **Styling**: Tailwind CSS with custom high-contrast surface tokens (Obsidian and Pearl)
+- **State and Cache**: Context API with optimistic updates and session storage caching
+- **Interactions**: Emil Kowalski tactile button physics (`active:scale-[0.98]`)
 
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/register` | Register a new user account (Multi-tier rate limited) | No |
-| `POST` | `/api/auth/login` | Authenticate with email/password and obtain JWT | No |
-| `GET` | `/api/auth/me` | Retrieve profile of currently authenticated user | Bearer JWT |
-| `GET` | `/api/auth/users` | Global directory of active users (Workspace owner only) | Bearer JWT |
-
-### Project Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/projects` | List all projects the user is a member or owner of | Bearer JWT |
-| `POST` | `/api/projects` | Create a new project workspace | Bearer JWT |
-| `GET` | `/api/projects/:id` | Fetch project details with member maps | Bearer JWT |
-| `PATCH` | `/api/projects/:id` | Update project name or description (Owner only) | Bearer JWT |
-| `DELETE` | `/api/projects/:id` | Cascading delete of project and all tasks (Owner only) | Bearer JWT |
-| `POST` | `/api/projects/:id/members` | Invite member by email (Owner only) | Bearer JWT |
-| `DELETE` | `/api/projects/:id/members/:mId` | Revoke member access (Owner only) | Bearer JWT |
-
-### Task Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/projects/:id/tasks` | List all tasks for a specific project | Bearer JWT |
-| `POST` | `/api/projects/:id/tasks` | Create a task in the project | Bearer JWT |
-| `PATCH` | `/api/projects/:id/tasks/:tId` | Update task fields (Status, Priority, Assignee, etc.) | Bearer JWT |
-| `DELETE` | `/api/projects/:id/tasks/:tId` | Delete task (Owner or Task Creator only) | Bearer JWT |
-
-### Telemetry & Health
-
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| `GET` | `/api/health` | Service uptime, database integrity status, and WAL mode check |
-| `GET` | `/api/metrics` | Real-time project counts, task counts, and velocity metrics |
+### Backend
+- **Runtime**: Node.js 22 LTS
+- **Server Framework**: Express with TypeScript 5 (Strict Mode)
+- **Database**: SQLite 3 with Write-Ahead Logging (`PRAGMA journal_mode = WAL`)
+- **Authentication**: JWT with bcrypt hashing (12 rounds)
+- **Validation**: Zod schema validation on all incoming mutations
+- **Security**: Helmet, CORS whitelist, Morgan logging, Custom RFC 9457 error boundary
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 TaskFlow/
-├── DESIGN.md                          # Swiss Obsidian & Pearl Design Tokens
-├── TASKFLOW_MASTER_SPECIFICATION.md   # Architectural blueprint & API contract
-├── next.config.mjs                    # Next.js 16.4.2 config with Turbopack root
-├── package.json                       # Next.js 16.4.2 & React 19 dependencies
-├── tsconfig.json                      # Strict TypeScript compiler options
-├── tailwind.config.ts                 # Extended tactile shadow & token mapping
-│
-├── src/                               # Frontend Next.js App Router
-│   ├── app/
-│   │   ├── layout.tsx                 # Root layout with AntdProvider & Theme
-│   │   ├── globals.css                # Tactile tokens, CSS variables & typography
-│   │   ├── page.tsx                   # Architectural landing page & benchmark
-│   │   ├── login/page.tsx             # 1-click persona login with ⌘+Enter
-│   │   ├── register/page.tsx          # Account creation with password strength
-│   │   ├── dashboard/page.tsx         # KPI overview & project discovery grid
-│   │   ├── projects/new/page.tsx      # Project wizard with sprint templates
-│   │   └── projects/[id]/
-│   │       ├── page.tsx               # Master Kanban Board & Table view
-│   │       └── settings/page.tsx      # Member roster & danger-zone delete
-│   ├── components/
-│   │   ├── kanban/
-│   │   │   ├── KanbanCard.tsx         # Tactile card with grip & cellular signal
-│   │   │   └── TaskDetailDrawer.tsx   # Slide-over inspector
-│   │   ├── layout/
-│   │   │   ├── Navbar.tsx             # Bilingual header with command palette
-│   │   │   ├── AppSidebar.tsx         # Minimalist desktop navigation
-│   │   │   └── AppShell.tsx           # Responsive container shell
-│   │   └── ui/
-│   │       ├── PrioritySignalBadge.tsx# SVG Cellular signal indicator (..ı)
-│   │       ├── CommandPalette.tsx     # Cmd+K fuzzy shortcut navigator
-│   │       ├── TopProgressBar.tsx     # Tactile request loader
-│   │       └── DashboardSkeleton.tsx  # Zero-CLS loading state
-│   ├── context/
-│   │   ├── AuthContext.tsx            # Session lifecycle & JWT storage
-│   │   ├── LanguageContext.tsx        # English (LTR) & Arabic (RTL) engine
-│   │   └── ThemeContext.tsx           # Obsidian Dark & Pearl Light switcher
-│   └── lib/
-│       ├── api.ts                     # Fault-tolerant client with cloud failover
-│       └── utils.ts                   # Date localization & tag parser
-│
-└── server/                            # Node.js Express REST API Backend
-    ├── package.json                   # Express 4.21, SQLite3, Helmet, Zod
-    ├── tsconfig.json                  # Server TypeScript configuration
-    └── src/
-        ├── index.ts                   # Express server bootstrap & middleware chain
-        ├── config/
-        │   ├── database.ts            # SQLite connection with WAL mode
-        │   └── env.ts                 # JWT secret & environment resolution
-        ├── controllers/
-        │   ├── authController.ts      # Bcrypt 12-round hashing & JWT issuance
-        │   ├── projectsController.ts  # Project CRUD & member allocation
-        │   └── tasksController.ts     # Task state transitions & RBAC enforcement
-        ├── middlewares/
-        │   ├── auth.ts                # Bearer token & active-user validation
-        │   ├── security.ts            # Helmet, multi-tier rate limiting
-        │   └── errorHandler.ts        # RFC 9457 structured error responses
-        └── tests/
-            └── registrationLimiter.test.ts # Node.js test runner unit suite
+├── public/                 # Static assets, icons, screenshots, and OG image
+│   ├── favicon.ico
+│   ├── og-image.png        # Social sharing banner (WhatsApp / Twitter)
+│   └── screenshots/        # High-resolution application screenshots
+├── src/                    # Frontend Next.js 15 application
+│   ├── app/                # App Router pages and layouts
+│   │   ├── dashboard/      # Project overview and metrics
+│   │   ├── login/          # Authentication with 1-click evaluation personas
+│   │   ├── projects/       # Kanban board, table view, and settings
+│   │   ├── register/       # User onboarding with role selection
+│   │   ├── globals.css     # Semantic tokens, typography, and scrollbars
+│   │   └── layout.tsx      # Root layout, metadata, and Open Graph tags
+│   ├── components/         # Modular UI components
+│   │   ├── kanban/         # Kanban card, detail drawer, and timeline
+│   │   ├── layout/         # Unified navbar and responsive sidebar
+│   │   └── ui/             # Command palette, signal badges, and skeletons
+│   ├── context/            # Global Auth, Theme, and Language providers
+│   ├── lib/                # API client and date utilities
+│   ├── services/           # DataStore and Web Notification services
+│   └── types/              # Unified TypeScript definitions
+├── server/                 # Standalone Express SQL Backend
+│   ├── data/               # Persistent SQLite WAL database file
+│   └── src/
+│       ├── config/         # Database connection and environment config
+│       ├── controllers/    # Vertical-slice controllers (Tasks, Projects, Auth)
+│       ├── middlewares/    # Security headers, auth verification, error handler
+│       ├── routes/         # REST API route endpoints
+│       └── validators/     # Zod request validation schemas
+└── docs/                   # Architectural documentation and ADRs
 ```
 
 ---
 
-## 💻 Installation & Local Setup
+## Architecture Standards: 6-Zone File Layout
+
+Every major frontend and backend file strictly adheres to the 6-Zone File Layout:
+
+1. **Zone 1: Imports** - Organized third-party and internal module imports.
+2. **Zone 2: Configuration and Styles** - All editable labels, URLs, and style dictionaries centralized at the top.
+3. **Zone 3: Types and Interfaces** - Explicit, readable TypeScript contracts without type gymnastics.
+4. **Zone 4: Helper Functions and Hooks** - Pure utilities, date formatters, and custom hooks.
+5. **Zone 5: Sub-Components** - Focused, single-purpose presentational components.
+6. **Zone 6: Main Component** - High-level layout with early return guard clauses.
+
+---
+
+## REST API Reference
+
+All API routes are prefixed with `/api`. Protected routes require a valid `Bearer <token>` in the `Authorization` header.
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Public | Service health, SQLite engine, and security status |
+| `POST` | `/auth/register` | Public | Account registration with rate-limiting guard |
+| `POST` | `/auth/login` | Public | Authenticate user and issue JWT |
+| `GET` | `/projects` | Authenticated | List all projects belonging to user (batch-loaded) |
+| `POST` | `/projects` | Authenticated | Create a new project workspace |
+| `GET` | `/projects/:id` | Authenticated | Fetch project details and member roster |
+| `PATCH` | `/projects/:id` | Owner Only | Update project metadata and settings |
+| `DELETE` | `/projects/:id` | Owner Only | Delete project and cascade-delete all tasks |
+| `POST` | `/projects/:id/members` | Owner / Maintainer | Invite team member by email |
+| `PATCH` | `/projects/:id/members/:uid` | Owner / Maintainer | Update member role |
+| `DELETE` | `/projects/:id/members/:uid` | Owner Only | Remove member from project |
+| `GET` | `/projects/:id/tasks` | Authenticated | Fetch tasks for a project |
+| `POST` | `/projects/:id/tasks` | Non-Viewer | Create a new task in the project |
+| `PATCH` | `/projects/:id/tasks/:taskId` | Authenticated | Update task attributes or status |
+| `DELETE` | `/projects/:id/tasks/:taskId` | Owner / Creator | Delete a task |
+
+---
+
+## Local Setup and Installation
 
 ### Prerequisites
-* **Node.js:** v18.18.0 or higher (Node 20+ recommended)
-* **npm:** v9.0.0 or higher
+- Node.js 20 or higher
+- npm 10 or higher
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/AhmadJalhoom20/taskflow.git
-cd taskflow
+git clone git@github.com:bahaajalhoom/taskflow_task.git
+cd taskflow_task
 ```
 
-### 2. Frontend Setup
+### 2. Install Dependencies
 ```bash
 # Install frontend dependencies
 npm install
 
-# Run Next.js 16.4.2 development server
-npm run dev
-```
-The frontend will start at **`http://localhost:3000`**.
-
-### 3. Backend Setup (Independent Express Service)
-Open a separate terminal window:
-```bash
-cd server
-
 # Install backend dependencies
+cd server
 npm install
+cd ..
+```
 
-# Run Express SQL API service
+### 3. Environment Configuration
+Create `.env.local` in the root directory:
+```env
+NEXT_PUBLIC_BACKEND_API_URL=http://localhost:5001/api
+```
+
+Create `server/.env`:
+```env
+PORT=5001
+JWT_SECRET=your_secure_development_secret_key_minimum_32_characters
+NODE_ENV=development
+```
+
+### 4. Run the Development Servers
+```bash
+# Terminal 1: Start the backend service
+cd server
+npm run dev
+
+# Terminal 2: Start the Next.js frontend
 npm run dev
 ```
-The backend API service will initialize the SQLite database in WAL mode and start listening on **`http://localhost:5001`**.
+
+The frontend will be available at `http://localhost:3000` and the backend at `http://localhost:5001`.
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## Verification and Quality Checks
 
-TaskFlow is engineered for zero-mouse velocity:
+To verify code quality and TypeScript compilation without producing production builds:
 
-| Key Binding | Scope | Action |
-| :--- | :--- | :--- |
-| `Cmd + K` or `Ctrl + K` | Global | Open Fuzzy Command Palette |
-| `/` | Dashboard / Landing | Focus search bar immediately |
-| `Esc` | Modals & Drawers | Dismiss current modal, palette, or drawer |
-| `⌘ + Enter` or `Ctrl + Enter` | Modals & Forms | Immediately submit and save changes |
-| `Enter` or `Space` | Kanban Cards | Open Slide-Over Task Inspection Drawer |
+```bash
+# Verify frontend type integrity
+npx tsc --noEmit
 
----
-
-## 🌐 Bilingual Typography & RTL Support
-
-TaskFlow delivers 100% typographic parity between Arabic and English:
-
-* **Arabic (RTL):**
-  * Typography: **`IBM Plex Sans Arabic`**
-  * Direction: Automatic `dir="rtl"` with dynamic layout mirroring.
-  * Diacritic Clearance: Line height clamped at `1.72` to eliminate ascender clipping.
-  * Optical Compensation: Arabic body text optically enlarged by 10% to match Latin x-height.
-* **English (LTR):**
-  * Typography: **`Instrument Sans`** + **`Inter`**
-  * Direction: Standard `dir="ltr"` with crisp lining numbers.
+# Verify backend type integrity
+cd server
+npx tsc --noEmit
+```
 
 ---
 
-## 📜 License & Compliance
+## Author and Credits
 
-Distributed under the **MIT License**. Engineered according to high-integrity software craftsmanship standards.
+Engineered by Ahmad Jalhoom.  
+Portfolio: [skill-ps.apps.taqat.academy](https://skill-ps.apps.taqat.academy/)  
+Live Deployment: [taskflow.apps.taqat.academy](https://taskflow.apps.taqat.academy/)
