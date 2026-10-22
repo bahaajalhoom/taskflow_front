@@ -234,6 +234,15 @@ html[dir='rtl'] .tracking-widest {
   outline-offset: 2px;
 }
 
+/* Ant Design Segmented Item Guarantee: Always horizontal, never wrapped */
+.ant-segmented .ant-segmented-item,
+.ant-segmented .ant-segmented-item-label {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 /* Minimalist Engineered Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

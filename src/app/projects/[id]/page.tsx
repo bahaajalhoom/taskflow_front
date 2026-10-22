@@ -1178,10 +1178,10 @@ export default function ProjectDetailsPage() {
           </div>
         )}
 
-        {/* Row 3: Integrated Filter & View Controls */}
-        <div className="pt-3 border-t border-[#DDDAD3]/70 dark:border-[#2C2824]/70 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
-          {/* Left: View Mode Toggle */}
-          <div className="flex items-center gap-2">
+        {/* Row 3: Navigation Bar (View Mode Switcher & Contextual Status) */}
+        <div className="pt-3 border-t border-[#DDDAD3]/70 dark:border-[#2C2824]/70 flex flex-wrap items-center justify-between gap-3">
+          {/* Left: View Mode Toggle (Guaranteed No-Wrap Horizontal Layout) */}
+          <div className="shrink-0 overflow-x-auto py-0.5">
             <Segmented
               value={viewMode}
               onChange={(val) => setViewMode(val as ViewMode)}
@@ -1189,230 +1189,249 @@ export default function ProjectDetailsPage() {
               options={[
                 {
                   value: 'kanban',
-                  label: <span className="font-semibold text-xs sm:text-sm px-1">{t('kanbanBoard')}</span>,
-                  icon: <AppstoreOutlined className="text-xs sm:text-sm" />,
+                  label: (
+                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                      <AppstoreOutlined className="text-xs sm:text-sm shrink-0" />
+                      <span>{t('kanbanBoard')}</span>
+                    </span>
+                  ),
                 },
                 {
                   value: 'table',
-                  label: <span className="font-semibold text-xs sm:text-sm px-1">{t('tableView')}</span>,
-                  icon: <UnorderedListOutlined className="text-xs sm:text-sm" />,
+                  label: (
+                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                      <UnorderedListOutlined className="text-xs sm:text-sm shrink-0" />
+                      <span>{t('tableView')}</span>
+                    </span>
+                  ),
                 },
                 {
                   value: 'timeline',
                   label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1">
-                      {isArabic ? 'المسار الزمني' : 'Timeline'}
+                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                      <CalendarOutlined className="text-xs sm:text-sm shrink-0" />
+                      <span>{isArabic ? 'المسار الزمني' : 'Timeline'}</span>
                     </span>
                   ),
-                  icon: <CalendarOutlined className="text-xs sm:text-sm" />,
                 },
                 {
                   value: 'chat',
                   label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1">
-                      {isArabic ? 'شات الفريق' : 'Team Chat'}
+                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                      <MessageOutlined className="text-xs sm:text-sm shrink-0" />
+                      <span>{isArabic ? 'شات الفريق' : 'Team Chat'}</span>
                     </span>
                   ),
-                  icon: <MessageOutlined className="text-xs sm:text-sm" />,
                 },
                 {
                   value: 'meeting',
                   label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1 flex items-center gap-1.5">
+                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                      <VideoCameraOutlined className="text-xs sm:text-sm shrink-0" />
                       <span>{isArabic ? 'غرفة الاجتماع' : 'Meeting'}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ms-0.5 shrink-0" />
                     </span>
                   ),
-                  icon: <VideoCameraOutlined className="text-xs sm:text-sm" />,
                 },
               ]}
             />
           </div>
 
-          {/* Center & Right: Task Search and Filters (ONLY for Task Board and Table View) */}
-          {(viewMode === 'kanban' || viewMode === 'table') && (
-            <>
-              {/* Center: Search */}
-              <div className="flex-1 max-w-sm">
-                <Tooltip
-                  title={
-                    isArabic
-                      ? 'البحث عن طريق عنوان المهمة أو الوصف أو المسؤول'
-                      : 'Search by task title, description, or assignee'
-                  }
-                >
-                  <Input
-                    prefix={<SearchOutlined className="text-[#736B5E] dark:text-[#9A9183] me-1 text-sm" />}
-                    placeholder={t('filterTasksPlaceholder')}
-                    value={filters.searchQuery}
-                    onChange={(e) => updateFilterField('searchQuery', e.target.value)}
-                    allowClear
-                    size="middle"
-                    className="rounded text-sm bg-[#F4F4F2] dark:bg-[#1C1A17] border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD]"
-                  />
-                </Tooltip>
-              </div>
-
-              {/* Right: Quick Filters & Dropdowns */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Quick Overdue Filter Button */}
-                <Tooltip title={isArabic ? 'عرض المهام المتأخرة فقط' : 'Show only overdue tasks'}>
-                  <Button
-                    type={filters.overdueOnly ? 'primary' : 'default'}
-                    danger={filters.overdueOnly || overdueCount > 0}
-                    icon={<ClockCircleOutlined className="text-xs" />}
-                    onClick={() => updateFilterField('overdueOnly', !filters.overdueOnly)}
-                    size="middle"
-                    className="tactile-btn flex items-center gap-1 font-semibold text-xs border-[#DDDAD3] dark:border-[#2C2824] rounded"
-                  >
-                    {t('overdueFilter')}
-                    {overdueCount > 0 && (
-                      <span className="ms-1 text-[11px] font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-[#9C2E1F] dark:text-[#EE8A78] tnum">
-                        {overdueCount}
-                      </span>
-                    )}
-                  </Button>
-                </Tooltip>
-
-                {/* Quick My Tasks Filter Button */}
-                <Tooltip title={isArabic ? 'عرض المهام المسندة إلي فقط' : 'Show only tasks assigned to me'}>
-                  <Button
-                    type={filters.myTasksOnly ? 'primary' : 'default'}
-                    icon={<UserOutlined className="text-xs" />}
-                    onClick={() => updateFilterField('myTasksOnly', !filters.myTasksOnly)}
-                    size="middle"
-                    className={`tactile-btn flex items-center gap-1 font-semibold text-xs border-[#DDDAD3] dark:border-[#2C2824] rounded ${
-                      filters.myTasksOnly
-                        ? '!bg-[#7A5818] dark:!bg-[#D4B26E] !border-transparent !text-white dark:!text-[#1A1408] font-bold'
-                        : ''
-                    }`}
-                  >
-                    {t('myTasksFilter')}
-                  </Button>
-                </Tooltip>
-
-                {/* Status Dropdown */}
-                <Select
-                  value={filters.statusFilter}
-                  onChange={(val) => updateFilterField('statusFilter', val)}
-                  size="middle"
-                  className="w-28 text-xs font-semibold"
-                  options={[
-                    { value: 'all', label: t('allStatus') },
-                    { value: 'todo', label: t('statusTodo') },
-                    { value: 'in_progress', label: t('statusInProgress') },
-                    { value: 'done', label: t('statusDone') },
-                  ]}
-                />
-
-                {/* Priority Dropdown */}
-                <Select
-                  value={filters.priorityFilter}
-                  onChange={(val) => updateFilterField('priorityFilter', val)}
-                  size="middle"
-                  className="w-28 text-xs font-semibold"
-                  options={[
-                    { value: 'all', label: t('allPriority') },
-                    {
-                      value: 'high',
-                      label: (
-                        <div className="flex items-center justify-between gap-1">
-                          <span>{t('priorityHigh')}</span>
-                          <PrioritySignalIcon priority="high" size="sm" />
-                        </div>
-                      ),
-                    },
-                    {
-                      value: 'medium',
-                      label: (
-                        <div className="flex items-center justify-between gap-1">
-                          <span>{t('priorityMedium')}</span>
-                          <PrioritySignalIcon priority="medium" size="sm" />
-                        </div>
-                      ),
-                    },
-                    {
-                      value: 'low',
-                      label: (
-                        <div className="flex items-center justify-between gap-1">
-                          <span>{t('priorityLow')}</span>
-                          <PrioritySignalIcon priority="low" size="sm" />
-                        </div>
-                      ),
-                    },
-                  ]}
-                />
-
-                {/* Assignee Dropdown */}
-                <Select
-                  value={filters.assigneeFilter}
-                  onChange={(val) => updateFilterField('assigneeFilter', val)}
-                  size="middle"
-                  className="w-32 text-xs font-semibold"
-                  options={[
-                    { value: 'all', label: t('allMembers') },
-                    { value: 'unassigned', label: t('unassigned') },
-                    ...project.memberIds.map((mId) => ({
-                      value: mId,
-                      label: project.memberDetails?.[mId]?.displayName || mId,
-                    })),
-                  ]}
-                />
-
-                {/* Sort Selector */}
-                <Select
-                  value={filters.sortBy}
-                  onChange={(val) => updateFilterField('sortBy', val as SortByOption)}
-                  size="middle"
-                  className="w-32 text-xs font-semibold"
-                  options={[
-                    { value: 'default', label: t('sortDefault') },
-                    { value: 'priority', label: t('sortPriority') },
-                    { value: 'due_date', label: t('sortDueDate') },
-                    { value: 'title', label: t('sortTitle') },
-                  ]}
-                />
-
-                {isAnyFilterActive && (
-                  <Tooltip
-                    title={
-                      isArabic ? 'إعادة ضبط كافة الفلاتر والبحث' : 'Reset all filters and search'
-                    }
-                  >
-                    <Button
-                      type="link"
-                      size="middle"
-                      onClick={handleResetFilters}
-                      className="!text-[#7A5818] dark:!text-[#D4B26E] font-bold text-xs"
-                    >
-                      {t('resetFilters')}
-                    </Button>
-                  </Tooltip>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Contextual Badge for Meeting Room */}
-          {viewMode === 'meeting' && (
-            <div className="flex items-center gap-2">
+          {/* Right: Quick Action / Contextual Status */}
+          <div className="flex items-center gap-2 shrink-0">
+            {viewMode === 'meeting' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {isArabic ? 'قاعة اجتماعات WebRTC مباشرة ومشفرة' : 'Encrypted Live WebRTC Room'}
               </span>
-            </div>
-          )}
+            )}
 
-          {/* Contextual Badge for Team Chat */}
-          {viewMode === 'chat' && (
-            <div className="flex items-center gap-2">
+            {viewMode === 'chat' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400">
                 <MessageOutlined className="text-xs" />
                 {isArabic ? 'قناة محادثة الفريق الفورية' : 'Live Team Workspace Chat'}
               </span>
-            </div>
-          )}
+            )}
+
+            {viewMode === 'timeline' && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/10 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400">
+                <CalendarOutlined className="text-xs" />
+                {isArabic ? 'مخطط زمني للمهام والمهل' : 'Sprint Milestones & Deadlines'}
+              </span>
+            )}
+
+            {(viewMode === 'kanban' || viewMode === 'table') && (
+              <span className="text-xs font-medium text-[#736B5E] dark:text-[#9A9183]">
+                {t('totalTasks')}:{' '}
+                <strong className="text-[#1B1915] dark:text-[#EFE9DD] tnum">{tasks.length}</strong>
+              </span>
+            )}
+          </div>
         </div>
+
+        {/* Row 4: Dedicated Task Search & Filters Toolbar (ONLY for Task Board and Table View) */}
+        {(viewMode === 'kanban' || viewMode === 'table') && (
+          <div className="pt-2.5 mt-2.5 border-t border-[#DDDAD3]/50 dark:border-[#2C2824]/50 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+            {/* Search Input: Generous width, full clear placeholder, never squished! */}
+            <div className="w-full md:w-80 shrink-0">
+              <Tooltip
+                title={
+                  isArabic
+                    ? 'البحث عن طريق عنوان المهمة أو الوصف أو المسؤول'
+                    : 'Search by task title, description, or assignee'
+                }
+              >
+                <Input
+                  prefix={<SearchOutlined className="text-[#736B5E] dark:text-[#9A9183] me-1 text-sm" />}
+                  placeholder={t('filterTasksPlaceholder')}
+                  value={filters.searchQuery}
+                  onChange={(e) => updateFilterField('searchQuery', e.target.value)}
+                  allowClear
+                  size="middle"
+                  className="rounded text-sm bg-[#F4F4F2] dark:bg-[#1C1A17] border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD] w-full"
+                />
+              </Tooltip>
+            </div>
+
+            {/* Right: Quick Filters & Dropdowns */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Quick Overdue Filter Button */}
+              <Tooltip title={isArabic ? 'عرض المهام المتأخرة فقط' : 'Show only overdue tasks'}>
+                <Button
+                  type={filters.overdueOnly ? 'primary' : 'default'}
+                  danger={filters.overdueOnly || overdueCount > 0}
+                  icon={<ClockCircleOutlined className="text-xs" />}
+                  onClick={() => updateFilterField('overdueOnly', !filters.overdueOnly)}
+                  size="middle"
+                  className="tactile-btn flex items-center gap-1 font-semibold text-xs border-[#DDDAD3] dark:border-[#2C2824] rounded"
+                >
+                  {t('overdueFilter')}
+                  {overdueCount > 0 && (
+                    <span className="ms-1 text-[11px] font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-[#9C2E1F] dark:text-[#EE8A78] tnum">
+                      {overdueCount}
+                    </span>
+                  )}
+                </Button>
+              </Tooltip>
+
+              {/* Quick My Tasks Filter Button */}
+              <Tooltip title={isArabic ? 'عرض المهام المسندة إلي فقط' : 'Show only tasks assigned to me'}>
+                <Button
+                  type={filters.myTasksOnly ? 'primary' : 'default'}
+                  icon={<UserOutlined className="text-xs" />}
+                  onClick={() => updateFilterField('myTasksOnly', !filters.myTasksOnly)}
+                  size="middle"
+                  className={`tactile-btn flex items-center gap-1 font-semibold text-xs border-[#DDDAD3] dark:border-[#2C2824] rounded ${
+                    filters.myTasksOnly
+                      ? '!bg-[#7A5818] dark:!bg-[#D4B26E] !border-transparent !text-white dark:!text-[#1A1408] font-bold'
+                      : ''
+                  }`}
+                >
+                  {t('myTasksFilter')}
+                </Button>
+              </Tooltip>
+
+              {/* Status Dropdown */}
+              <Select
+                value={filters.statusFilter}
+                onChange={(val) => updateFilterField('statusFilter', val)}
+                size="middle"
+                className="w-28 text-xs font-semibold"
+                options={[
+                  { value: 'all', label: t('allStatus') },
+                  { value: 'todo', label: t('statusTodo') },
+                  { value: 'in_progress', label: t('statusInProgress') },
+                  { value: 'done', label: t('statusDone') },
+                ]}
+              />
+
+              {/* Priority Dropdown */}
+              <Select
+                value={filters.priorityFilter}
+                onChange={(val) => updateFilterField('priorityFilter', val)}
+                size="middle"
+                className="w-28 text-xs font-semibold"
+                options={[
+                  { value: 'all', label: t('allPriority') },
+                  {
+                    value: 'high',
+                    label: (
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{t('priorityHigh')}</span>
+                        <PrioritySignalIcon priority="high" size="sm" />
+                      </div>
+                    ),
+                  },
+                  {
+                    value: 'medium',
+                    label: (
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{t('priorityMedium')}</span>
+                        <PrioritySignalIcon priority="medium" size="sm" />
+                      </div>
+                    ),
+                  },
+                  {
+                    value: 'low',
+                    label: (
+                      <div className="flex items-center justify-between gap-1">
+                        <span>{t('priorityLow')}</span>
+                        <PrioritySignalIcon priority="low" size="sm" />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+
+              {/* Assignee Dropdown */}
+              <Select
+                value={filters.assigneeFilter}
+                onChange={(val) => updateFilterField('assigneeFilter', val)}
+                size="middle"
+                className="w-32 text-xs font-semibold"
+                options={[
+                  { value: 'all', label: t('allMembers') },
+                  { value: 'unassigned', label: t('unassigned') },
+                  ...project.memberIds.map((mId) => ({
+                    value: mId,
+                    label: project.memberDetails?.[mId]?.displayName || mId,
+                  })),
+                ]}
+              />
+
+              {/* Sort Selector */}
+              <Select
+                value={filters.sortBy}
+                onChange={(val) => updateFilterField('sortBy', val as SortByOption)}
+                size="middle"
+                className="w-32 text-xs font-semibold"
+                options={[
+                  { value: 'default', label: t('sortDefault') },
+                  { value: 'priority', label: t('sortPriority') },
+                  { value: 'due_date', label: t('sortDueDate') },
+                  { value: 'title', label: t('sortTitle') },
+                ]}
+              />
+
+              {isAnyFilterActive && (
+                <Tooltip
+                  title={
+                    isArabic ? 'إعادة ضبط كافة الفلاتر والبحث' : 'Reset all filters and search'
+                  }
+                >
+                  <Button
+                    type="link"
+                    size="middle"
+                    onClick={handleResetFilters}
+                    className="!text-[#7A5818] dark:!text-[#D4B26E] font-bold text-xs"
+                  >
+                    {t('resetFilters')}
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main View: Kanban Board vs Table */}
