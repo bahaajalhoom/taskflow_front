@@ -30,7 +30,6 @@ import { DataService } from '@/services/dataStore';
 import { Project, DashboardMetrics } from '@/types';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import WorkspaceOnboarding from '@/components/ui/WorkspaceOnboarding';
-import CompletionTrendChart from '@/components/dashboard/CompletionTrendChart';
 
 // بنحمل مودال التيم وقت الحاجة بس (Lazy Load) عشان نخفف حجم الصفحة
 const TeamRosterModal = dynamic(() => import('@/components/ui/TeamRosterModal'), { ssr: false });
@@ -577,9 +576,6 @@ export default function DashboardPage() {
             />
           </Col>
         </Row>
-
-        {/* 7-Day Completion Trend Line Chart (Recharts) */}
-        <CompletionTrendChart data={metrics.completionTrends} />
 
         {/* Projects Section & Sprint Velocity */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">

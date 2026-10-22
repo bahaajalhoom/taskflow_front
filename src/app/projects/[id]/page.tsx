@@ -98,7 +98,6 @@ const KANBAN_COLUMNS_CONFIG: Record<
     key: TaskStatus;
     dotClass: string;
     countBadgeClass: string;
-    trackClass: string;
     dragOverClass: string;
     defaultBgClass: string;
   }
@@ -107,7 +106,6 @@ const KANBAN_COLUMNS_CONFIG: Record<
     key: 'todo',
     dotClass: 'bg-[#736B5E] dark:bg-[#9A9183]',
     countBadgeClass: 'bg-[#EDECE8] dark:bg-[#1C1A17] text-[#1B1915] dark:text-[#EFE9DD]',
-    trackClass: 'status-track-todo',
     dragOverClass:
       'border-[#7A5818] dark:border-[#D4B26E] bg-[#D4B26E]/10 ring-2 ring-[#D4B26E]/20 shadow-md',
     defaultBgClass:
@@ -117,7 +115,6 @@ const KANBAN_COLUMNS_CONFIG: Record<
     key: 'in_progress',
     dotClass: 'bg-[#1E4D8A] dark:bg-[#8DB4E8]',
     countBadgeClass: 'bg-[#E3EDF8] dark:bg-[#142136] text-[#1E4D8A] dark:text-[#8DB4E8]',
-    trackClass: 'status-track-in_progress',
     dragOverClass: 'border-[#8DB4E8] bg-[#8DB4E8]/10 ring-2 ring-[#8DB4E8]/20 shadow-md',
     defaultBgClass:
       'border-[#DDDAD3] dark:border-[#2C2824] bg-[#EDECE8]/60 dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark',
@@ -126,7 +123,6 @@ const KANBAN_COLUMNS_CONFIG: Record<
     key: 'done',
     dotClass: 'bg-[#235832] dark:bg-[#9CC5A1]',
     countBadgeClass: 'bg-[#E1EFE4] dark:bg-[#152618] text-[#235832] dark:text-[#9CC5A1]',
-    trackClass: 'status-track-done',
     dragOverClass: 'border-[#9CC5A1] bg-[#9CC5A1]/10 ring-2 ring-[#9CC5A1]/20 shadow-md',
     defaultBgClass:
       'border-[#DDDAD3] dark:border-[#2C2824] bg-[#EDECE8]/60 dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark',
@@ -290,7 +286,7 @@ function KanbanColumnShell({
       onDrop={(e) => onDrop(e, status)}
       className={`${
         isVisibleOnMobile ? 'block' : 'hidden md:flex'
-      } ${STYLES.columnShell} ${colMeta.trackClass} ${
+      } ${STYLES.columnShell} ${
         isDragOver ? colMeta.dragOverClass : colMeta.defaultBgClass
       }`}
     >

@@ -311,14 +311,3 @@ html.dark .tactile-card:hover {
 .priority-dot-low {
   background-color: var(--pr-low-fg);
 }
-
-/* Status Column Accents */
-.status-track-todo {
-  border-top: 2px solid var(--st-todo-fg);
-}
-.status-track-in_progress {
-  border-top: 2px solid var(--st-progress-fg);
-}
-.status-track-done {
-  border-top: 2px solid var(--st-done-fg);
-}
