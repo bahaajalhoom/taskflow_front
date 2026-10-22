@@ -10,9 +10,6 @@ import {
   MailOutlined,
   LockOutlined,
   ArrowRightOutlined,
-  CrownOutlined,
-  UserOutlined,
-  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Card, Form, Input, Button, Alert, Typography } from 'antd';
 import { useAuth } from '@/context/AuthContext';
@@ -24,34 +21,6 @@ const { Title, Text } = Typography;
 // ============================================================================
 // 2. CONFIGURATION, CONSTANTS & STYLES (EASY EDIT ZONE)
 // ============================================================================
-// Configure 1-click test credentials and design styling here.
-const DEMO_PERSONAS = [
-  {
-    key: 'owner',
-    email: 'owner@taqat-gaza.com',
-    roleEn: 'Admin',
-    roleAr: 'مالك',
-    tag: 'Admin',
-    iconType: 'crown' as const,
-  },
-  {
-    key: 'member',
-    email: 'member@taqat-gaza.com',
-    roleEn: 'Engineer',
-    roleAr: 'مهندس',
-    tag: 'Engineer',
-    iconType: 'user-blue' as const,
-  },
-  {
-    key: 'trainee',
-    email: 'trainee@taqat-gaza.com',
-    roleEn: 'Viewer',
-    roleAr: 'متدرب',
-    tag: 'Viewer',
-    iconType: 'user-green' as const,
-  },
-] as const;
-
 const STYLES = {
   container: 'flex items-center justify-center min-h-[82vh] px-4 py-10',
   card: 'tactile-card border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark rounded-xl p-3 sm:p-5',
@@ -61,8 +30,6 @@ const STYLES = {
     'rounded text-sm bg-white dark:bg-[#1C1A17] border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD]',
   primarySubmitButton:
     'tactile-btn font-bold !text-white dark:!text-[#1A1408] h-11 rounded text-sm !bg-[#7A5818] dark:!bg-[#D4B26E] hover:!bg-[#5e4310] dark:hover:!bg-[#e5c583] !border-[#7A5818] dark:!border-[#D4B26E] shadow-xs',
-  personaCard:
-    'tactile-btn flex flex-col items-center justify-center p-2 rounded border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] text-center hover:border-[#7A5818] dark:hover:border-[#D4B26E] transition-colors cursor-pointer',
 } as const;
 
 // ============================================================================
@@ -71,57 +38,6 @@ const STYLES = {
 interface LoginFormValues {
   email: string;
   password: string;
-}
-
-// ============================================================================
-// 4. HELPER FUNCTIONS & HOOKS
-// ============================================================================
-function renderPersonaIcon(iconType: 'crown' | 'user-blue' | 'user-green') {
-  switch (iconType) {
-    case 'crown':
-      return <CrownOutlined className="text-[#7A5818] dark:text-[#D4B26E] text-xs mb-0.5" />;
-    case 'user-blue':
-      return <UserOutlined className="text-[#8DB4E8] text-xs mb-0.5" />;
-    case 'user-green':
-      return <UserOutlined className="text-[#9CC5A1] text-xs mb-0.5" />;
-  }
-}
-
-// ============================================================================
-// 5. SUB-COMPONENTS
-// ============================================================================
-interface PersonaQuickFillBarProps {
-  isArabic: boolean;
-  onQuickFill: (email: string) => void;
-}
-
-function PersonaQuickFillBar({ isArabic, onQuickFill }: PersonaQuickFillBarProps) {
-  return (
-    <div className="mb-5 p-3 rounded-lg bg-[#EDECE8] dark:bg-[#1C1A17] border border-[#DDDAD3] dark:border-[#2C2824]">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#5A5348] dark:text-[#B5AC9C] mb-2">
-        <ThunderboltOutlined className="text-[#7A5818] dark:text-[#D4B26E]" />
-        <span>{isArabic ? 'بيئات تقييم معتمدة سريعة:' : 'Enterprise Test Profiles:'}</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {DEMO_PERSONAS.map((persona) => (
-          <button
-            key={persona.key}
-            type="button"
-            onClick={() => onQuickFill(persona.email)}
-            className={STYLES.personaCard}
-          >
-            {renderPersonaIcon(persona.iconType)}
-            <span className="text-[10px] font-bold text-[#1B1915] dark:text-[#EFE9DD]">
-              {isArabic ? persona.roleAr : persona.roleEn}
-            </span>
-            <span className="text-[9px] text-[#5A5348] dark:text-[#B5AC9C] font-mono">
-              {persona.tag}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 // ============================================================================
@@ -138,13 +54,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   // --- Handlers ---
-  const handleQuickFill = (email: string) => {
-    form.setFieldsValue({
-      email,
-      password: 'password123',
-    });
-  };
-
   const handleFormSubmit = async (values: LoginFormValues) => {
     setErrorMessage(null);
     setIsLoading(true);
@@ -193,9 +102,6 @@ export default function LoginPage() {
               className="mb-5 text-xs rounded-md"
             />
           )}
-
-          {/* 1-Click Evaluation Personas */}
-          <PersonaQuickFillBar isArabic={isArabic} onQuickFill={handleQuickFill} />
 
           {/* Credentials Form */}
           <Form
