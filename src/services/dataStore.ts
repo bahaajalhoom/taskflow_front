@@ -8,6 +8,8 @@ import {
   DueSoonTaskItem,
   ChatMessage,
   MeetingSession,
+  MeetingParticipant,
+  MeetingSignal,
 } from '@/types';
 import { apiRequest, getApiBaseUrl } from '@/lib/api';
 
@@ -439,12 +441,20 @@ export const DataService = {
     }
   },
 
-  async sendProjectMessage(projectId: string, content: string): Promise<ChatMessage> {
+  async sendProjectMessage(
+    projectId: string,
+    content: string,
+    options?: { replyToId?: string | null; mentions?: string[] }
+  ): Promise<ChatMessage> {
     const cacheKey = `taskflow_chat_${projectId}`;
     try {
       const newMsg = await apiRequest<ChatMessage>(`/projects/${projectId}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          replyToId: options?.replyToId || null,
+          mentions: options?.mentions || [],
+        }),
       });
       if (typeof window !== 'undefined') {
         const raw = sessionStorage.getItem(cacheKey);
@@ -462,6 +472,11 @@ export const DataService = {
         senderName: 'Team Member',
         senderEmail: 'member@taskflow.io',
         content,
+        status: 'delivered',
+        isEdited: false,
+        isDeleted: false,
+        replyToId: options?.replyToId || null,
+        mentions: options?.mentions || [],
         createdAt: new Date().toISOString(),
       };
       if (typeof window !== 'undefined') {
@@ -474,8 +489,37 @@ export const DataService = {
     }
   },
 
+  async editProjectMessage(projectId: string, messageId: string, content: string): Promise<{ id: string; content: string; isEdited: boolean }> {
+    return apiRequest<{ id: string; content: string; isEdited: boolean }>(
+      `/projects/${projectId}/messages/${messageId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      }
+    );
+  },
+
+  async deleteProjectMessage(projectId: string, messageId: string): Promise<{ id: string; isDeleted: boolean }> {
+    return apiRequest<{ id: string; isDeleted: boolean }>(
+      `/projects/${projectId}/messages/${messageId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  },
+
+  async markProjectMessagesRead(projectId: string): Promise<{ success: boolean }> {
+    try {
+      return await apiRequest<{ success: boolean }>(`/projects/${projectId}/messages/read`, {
+        method: 'POST',
+      });
+    } catch {
+      return { success: true };
+    }
+  },
+
   // ==========================================
-  // PROJECT OFFICIAL CONFERENCE & LIVE MEETING
+  // CUSTOM NATIVE MEETING & WEBRTC SIGNALING
   // ==========================================
   async getProjectMeeting(projectId: string): Promise<MeetingSession> {
     try {
@@ -483,17 +527,108 @@ export const DataService = {
         method: 'GET',
       });
     } catch {
-      const cleanId = projectId.replace(/-/g, '').slice(0, 10);
       return {
         id: `meeting-${projectId}`,
         projectId,
         title: 'Project Standup & Review',
-        roomUrl: `https://meet.jit.si/TaskFlow-Room-${cleanId}`,
+        roomUrl: `taskflow://meeting/${projectId}`,
         hostId: 'host-user',
         hostName: 'Project Lead',
         status: 'active',
         createdAt: new Date().toISOString(),
       };
+    }
+  },
+
+  async joinMeetingSession(
+    projectId: string,
+    payload: { peerId: string; isMuted?: boolean; isVideoOff?: boolean; isScreenSharing?: boolean }
+  ): Promise<{ success: boolean; participantId: string }> {
+    return apiRequest<{ success: boolean; participantId: string }>(
+      `/projects/${projectId}/meeting/join`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+
+  async leaveMeetingSession(projectId: string, peerId?: string): Promise<{ success: boolean }> {
+    try {
+      return await apiRequest<{ success: boolean }>(
+        `/projects/${projectId}/meeting/leave${peerId ? `?peerId=${encodeURIComponent(peerId)}` : ''}`,
+        {
+          method: 'POST',
+        }
+      );
+    } catch {
+      return { success: true };
+    }
+  },
+
+  async sendMeetingHeartbeat(
+    projectId: string,
+    payload: {
+      peerId: string;
+      isMuted?: boolean;
+      isVideoOff?: boolean;
+      isScreenSharing?: boolean;
+      isHandRaised?: boolean;
+    }
+  ): Promise<{ success: boolean }> {
+    try {
+      return await apiRequest<{ success: boolean }>(
+        `/projects/${projectId}/meeting/heartbeat`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+    } catch {
+      return { success: true };
+    }
+  },
+
+  async getMeetingParticipants(projectId: string): Promise<MeetingParticipant[]> {
+    try {
+      return await apiRequest<MeetingParticipant[]>(
+        `/projects/${projectId}/meeting/participants`,
+        {
+          method: 'GET',
+        }
+      );
+    } catch {
+      return [];
+    }
+  },
+
+  async sendMeetingSignal(
+    projectId: string,
+    payload: { fromPeerId: string; toPeerId: string; signalType: string; payload: any }
+  ): Promise<{ success: boolean }> {
+    try {
+      return await apiRequest<{ success: boolean }>(
+        `/projects/${projectId}/meeting/signal`,
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }
+      );
+    } catch {
+      return { success: true };
+    }
+  },
+
+  async getMeetingSignals(projectId: string, peerId: string): Promise<MeetingSignal[]> {
+    try {
+      return await apiRequest<MeetingSignal[]>(
+        `/projects/${projectId}/meeting/signals?peerId=${encodeURIComponent(peerId)}`,
+        {
+          method: 'GET',
+        }
+      );
+    } catch {
+      return [];
     }
   },
 };

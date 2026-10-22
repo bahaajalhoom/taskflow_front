@@ -97,7 +97,13 @@ export interface ChatMessage {
   senderName: string;
   senderEmail: string;
   content: string;
+  status?: 'sent' | 'delivered' | 'read';
+  isEdited?: boolean;
+  isDeleted?: boolean;
+  replyToId?: string | null;
+  mentions?: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MeetingSession {
@@ -110,4 +116,28 @@ export interface MeetingSession {
   status: 'active' | 'scheduled' | 'ended';
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface MeetingParticipant {
+  id: string;
+  projectId: string;
+  userId: string;
+  displayName: string;
+  peerId: string;
+  isMuted: boolean;
+  isVideoOff: boolean;
+  isScreenSharing: boolean;
+  isHandRaised: boolean;
+  lastHeartbeat: string;
+  joinedAt: string;
+}
+
+export interface MeetingSignal {
+  id: string;
+  projectId: string;
+  fromPeerId: string;
+  toPeerId: string;
+  signalType: 'offer' | 'answer' | 'ice-candidate';
+  payload: any;
+  createdAt: string;
 }

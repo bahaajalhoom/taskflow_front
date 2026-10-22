@@ -11,8 +11,17 @@ import {
   removeMember,
   getProjectMessages,
   createProjectMessage,
+  updateProjectMessage,
+  deleteProjectMessage,
+  markMessagesAsRead,
   getProjectMeeting,
   updateProjectMeeting,
+  joinMeeting,
+  leaveMeeting,
+  meetingHeartbeat,
+  getMeetingParticipants,
+  sendMeetingSignal,
+  getMeetingSignals,
 } from '../controllers/projectsController.js';
 
 const router = Router();
@@ -29,10 +38,21 @@ router.post('/:id/members', addMember);
 router.patch('/:id/members/:memberId', updateMemberRole);
 router.delete('/:id/members/:memberId', removeMember);
 
-// Team Chat & Live Conference
+// Team Chat Lifecycle
 router.get('/:id/messages', getProjectMessages);
 router.post('/:id/messages', createProjectMessage);
+router.patch('/:id/messages/:messageId', updateProjectMessage);
+router.delete('/:id/messages/:messageId', deleteProjectMessage);
+router.post('/:id/messages/read', markMessagesAsRead);
+
+// Custom Native Meeting & WebRTC Signaling Engine
 router.get('/:id/meetings', getProjectMeeting);
 router.patch('/:id/meetings', updateProjectMeeting);
+router.post('/:id/meeting/join', joinMeeting);
+router.post('/:id/meeting/leave', leaveMeeting);
+router.post('/:id/meeting/heartbeat', meetingHeartbeat);
+router.get('/:id/meeting/participants', getMeetingParticipants);
+router.post('/:id/meeting/signal', sendMeetingSignal);
+router.get('/:id/meeting/signals', getMeetingSignals);
 
 export default router;

@@ -39,9 +39,37 @@ export const updateTaskSchema = z.object({
 
 export const createMessageSchema = z.object({
   content: z.string().trim().min(1, 'Message cannot be empty').max(3000, 'Message cannot exceed 3000 characters'),
+  replyToId: z.string().nullable().optional(),
+  mentions: z.array(z.string()).optional(),
+});
+
+export const updateMessageSchema = z.object({
+  content: z.string().trim().min(1, 'Message cannot be empty').max(3000, 'Message cannot exceed 3000 characters'),
 });
 
 export const updateMeetingSchema = z.object({
   title: z.string().trim().min(3, 'Meeting title must be at least 3 characters').max(100, 'Title cannot exceed 100 characters').optional(),
   status: z.enum(['active', 'scheduled', 'ended']).optional(),
+});
+
+export const joinMeetingSchema = z.object({
+  peerId: z.string().trim().min(3),
+  isMuted: z.boolean().optional().default(false),
+  isVideoOff: z.boolean().optional().default(false),
+  isScreenSharing: z.boolean().optional().default(false),
+});
+
+export const meetingHeartbeatSchema = z.object({
+  peerId: z.string().trim().min(3),
+  isMuted: z.boolean().optional(),
+  isVideoOff: z.boolean().optional(),
+  isScreenSharing: z.boolean().optional(),
+  isHandRaised: z.boolean().optional(),
+});
+
+export const meetingSignalSchema = z.object({
+  fromPeerId: z.string().trim().min(3),
+  toPeerId: z.string().trim().min(3),
+  signalType: z.enum(['offer', 'answer', 'ice-candidate']),
+  payload: z.any(),
 });

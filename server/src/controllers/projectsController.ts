@@ -9,7 +9,11 @@ import {
   addMemberSchema,
   updateMemberRoleSchema,
   createMessageSchema,
+  updateMessageSchema,
   updateMeetingSchema,
+  joinMeetingSchema,
+  meetingHeartbeatSchema,
+  meetingSignalSchema,
 } from '../validators/schemas.js';
 
 interface DBProject {
@@ -511,7 +515,7 @@ export const removeMember = async (
 };
 
 // ============================================================================
-// Team Chat & Live Conference Controllers
+// Team Chat & Live Conference Controllers (Custom Native Implementation)
 // ============================================================================
 
 interface DBMessageRow {
@@ -521,7 +525,13 @@ interface DBMessageRow {
   sender_name: string;
   sender_email: string;
   content: string;
+  status?: string;
+  is_edited?: number;
+  is_deleted?: number;
+  reply_to_id?: string | null;
+  mentions?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 interface DBMeetingRow {
@@ -534,6 +544,30 @@ interface DBMeetingRow {
   status: 'active' | 'scheduled' | 'ended';
   created_at: string;
   updated_at: string;
+}
+
+interface DBParticipantRow {
+  id: string;
+  project_id: string;
+  user_id: string;
+  display_name: string;
+  peer_id: string;
+  is_muted: number;
+  is_video_off: number;
+  is_screen_sharing: number;
+  is_hand_raised: number;
+  last_heartbeat: string;
+  joined_at: string;
+}
+
+interface DBSignalRow {
+  id: string;
+  project_id: string;
+  from_peer_id: string;
+  to_peer_id: string;
+  signal_type: 'offer' | 'answer' | 'ice-candidate';
+  payload: string;
+  created_at: string;
 }
 
 async function checkProjectAccess(projectId: string, userId: string): Promise<DBProject> {
@@ -557,6 +591,8 @@ async function checkProjectAccess(projectId: string, userId: string): Promise<DB
   return project;
 }
 
+// --- Team Chat Endpoints ---
+
 export const getProjectMessages = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -567,24 +603,46 @@ export const getProjectMessages = async (
     const userId = req.user!.id || req.user!.uid;
     await checkProjectAccess(id, userId);
 
+    // Update status to 'delivered' for any sent messages
+    await dbRun(
+      `UPDATE project_messages SET status = 'delivered' WHERE project_id = ? AND user_id != ? AND status = 'sent'`,
+      [id, userId]
+    );
+
     const rows = await dbAll<DBMessageRow>(
-      `SELECT id, project_id, user_id, sender_name, sender_email, content, created_at
+      `SELECT id, project_id, user_id, sender_name, sender_email, content, status, is_edited, is_deleted, reply_to_id, mentions, created_at, updated_at
        FROM project_messages
        WHERE project_id = ?
        ORDER BY created_at ASC
-       LIMIT 150`,
+       LIMIT 200`,
       [id]
     );
 
-    const messages = rows.map((r) => ({
-      id: r.id,
-      projectId: r.project_id,
-      userId: r.user_id,
-      senderName: r.sender_name,
-      senderEmail: r.sender_email,
-      content: r.content,
-      createdAt: r.created_at,
-    }));
+    const messages = rows.map((r) => {
+      let parsedMentions: string[] = [];
+      if (r.mentions) {
+        try {
+          parsedMentions = JSON.parse(r.mentions);
+        } catch {
+          parsedMentions = [];
+        }
+      }
+      return {
+        id: r.id,
+        projectId: r.project_id,
+        userId: r.user_id,
+        senderName: r.sender_name,
+        senderEmail: r.sender_email,
+        content: r.content,
+        status: (r.status || 'delivered') as 'sent' | 'delivered' | 'read',
+        isEdited: Boolean(r.is_edited),
+        isDeleted: Boolean(r.is_deleted),
+        replyToId: r.reply_to_id || null,
+        mentions: parsedMentions,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
+    });
 
     res.status(200).json(messages);
   } catch (error) {
@@ -612,11 +670,14 @@ export const createProjectMessage = async (
     const now = new Date().toISOString();
     const senderName = user.displayName || user.email.split('@')[0] || 'Team Member';
     const senderEmail = user.email;
+    const mentionsJson = parsed.data.mentions && parsed.data.mentions.length > 0
+      ? JSON.stringify(parsed.data.mentions)
+      : null;
 
     await dbRun(
-      `INSERT INTO project_messages (id, project_id, user_id, sender_name, sender_email, content, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [messageId, id, userId, senderName, senderEmail, parsed.data.content, now]
+      `INSERT INTO project_messages (id, project_id, user_id, sender_name, sender_email, content, status, is_edited, is_deleted, reply_to_id, mentions, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'delivered', 0, 0, ?, ?, ?, ?)`,
+      [messageId, id, userId, senderName, senderEmail, parsed.data.content, parsed.data.replyToId || null, mentionsJson, now, now]
     );
 
     const newMessage = {
@@ -626,7 +687,13 @@ export const createProjectMessage = async (
       senderName,
       senderEmail,
       content: parsed.data.content,
+      status: 'delivered' as const,
+      isEdited: false,
+      isDeleted: false,
+      replyToId: parsed.data.replyToId || null,
+      mentions: parsed.data.mentions || [],
       createdAt: now,
+      updatedAt: now,
     };
 
     res.status(201).json(newMessage);
@@ -634,6 +701,117 @@ export const createProjectMessage = async (
     next(error);
   }
 };
+
+export const updateProjectMessage = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id, messageId } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const parsed = updateMessageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.issues[0]?.message || 'Invalid message payload.', 'VALIDATION_ERROR');
+    }
+
+    const existing = await dbGet<DBMessageRow>(
+      `SELECT id, user_id, is_deleted FROM project_messages WHERE id = ? AND project_id = ?`,
+      [messageId, id]
+    );
+
+    if (!existing) {
+      throw new AppError(404, 'Message not found.', 'NOT_FOUND');
+    }
+    if (existing.user_id !== userId) {
+      throw new AppError(403, 'You can only edit your own messages.', 'FORBIDDEN');
+    }
+    if (existing.is_deleted) {
+      throw new AppError(400, 'Cannot edit a deleted message.', 'INVALID_OPERATION');
+    }
+
+    const now = new Date().toISOString();
+    await dbRun(
+      `UPDATE project_messages SET content = ?, is_edited = 1, updated_at = ? WHERE id = ?`,
+      [parsed.data.content, now, messageId]
+    );
+
+    res.status(200).json({
+      id: messageId,
+      content: parsed.data.content,
+      isEdited: true,
+      updatedAt: now,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteProjectMessage = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id, messageId } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const project = await checkProjectAccess(id, userId);
+
+    const existing = await dbGet<DBMessageRow>(
+      `SELECT id, user_id FROM project_messages WHERE id = ? AND project_id = ?`,
+      [messageId, id]
+    );
+
+    if (!existing) {
+      throw new AppError(404, 'Message not found.', 'NOT_FOUND');
+    }
+
+    const isAuthor = existing.user_id === userId;
+    const isOwner = project.owner_id === userId;
+    if (!isAuthor && !isOwner) {
+      throw new AppError(403, 'Only message author or project owner can delete messages.', 'FORBIDDEN');
+    }
+
+    const now = new Date().toISOString();
+    await dbRun(
+      `UPDATE project_messages SET content = 'تم حذف هذه الرسالة', is_deleted = 1, updated_at = ? WHERE id = ?`,
+      [now, messageId]
+    );
+
+    res.status(200).json({
+      id: messageId,
+      isDeleted: true,
+      message: 'Message marked as deleted.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const markMessagesAsRead = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    await dbRun(
+      `UPDATE project_messages SET status = 'read' WHERE project_id = ? AND user_id != ? AND status != 'read'`,
+      [id, userId]
+    );
+
+    res.status(200).json({ success: true, message: 'All messages marked as read.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// --- Custom Native Meeting & WebRTC Signaling Engine ---
 
 export const getProjectMeeting = async (
   req: AuthenticatedRequest,
@@ -656,8 +834,8 @@ export const getProjectMeeting = async (
       const meetingId = uuidv4();
       const now = new Date().toISOString();
       const cleanProjectName = project.name.replace(/[^a-zA-Z0-9]/g, '') || 'Project';
-      const cleanId = id.replace(/-/g, '').slice(0, 10);
-      const roomUrl = `https://meet.jit.si/TaskFlow-${cleanProjectName}-${cleanId}`;
+      const cleanId = id.replace(/-/g, '').slice(0, 8);
+      const roomUrl = `taskflow://meeting/${id}/${cleanProjectName}`;
       const hostName = user.displayName || 'Project Lead';
 
       await dbRun(
@@ -731,6 +909,265 @@ export const updateProjectMeeting = async (
     );
 
     res.status(200).json(updated);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const joinMeeting = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const user = req.user!;
+    await checkProjectAccess(id, userId);
+
+    const parsed = joinMeetingSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, parsed.error.issues[0]?.message || 'Invalid join payload.', 'VALIDATION_ERROR');
+    }
+
+    const now = new Date().toISOString();
+    const participantId = uuidv4();
+    const displayName = user.displayName || user.email.split('@')[0] || 'Engineer';
+
+    // Remove any previous registration for this user in this project
+    await dbRun(
+      `DELETE FROM meeting_participants WHERE project_id = ? AND user_id = ?`,
+      [id, userId]
+    );
+
+    await dbRun(
+      `INSERT INTO meeting_participants (id, project_id, user_id, display_name, peer_id, is_muted, is_video_off, is_screen_sharing, is_hand_raised, last_heartbeat, joined_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [
+        participantId,
+        id,
+        userId,
+        displayName,
+        parsed.data.peerId,
+        parsed.data.isMuted ? 1 : 0,
+        parsed.data.isVideoOff ? 1 : 0,
+        parsed.data.isScreenSharing ? 1 : 0,
+        now,
+        now,
+      ]
+    );
+
+    res.status(200).json({
+      success: true,
+      participantId,
+      peerId: parsed.data.peerId,
+      joinedAt: now,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const leaveMeeting = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const peerId = req.query.peerId as string | undefined;
+
+    if (peerId) {
+      await dbRun(
+        `DELETE FROM meeting_participants WHERE project_id = ? AND peer_id = ?`,
+        [id, peerId]
+      );
+      await dbRun(
+        `DELETE FROM meeting_signals WHERE project_id = ? AND (from_peer_id = ? OR to_peer_id = ?)`,
+        [id, peerId, peerId]
+      );
+    } else {
+      await dbRun(
+        `DELETE FROM meeting_participants WHERE project_id = ? AND user_id = ?`,
+        [id, userId]
+      );
+    }
+
+    res.status(200).json({ success: true, message: 'Left meeting room cleanly.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const meetingHeartbeat = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const parsed = meetingHeartbeatSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, 'Invalid heartbeat payload.', 'VALIDATION_ERROR');
+    }
+
+    const now = new Date().toISOString();
+    const staleThreshold = new Date(Date.now() - 45000).toISOString();
+
+    // Clean up stale participants older than 45 seconds
+    await dbRun(
+      `DELETE FROM meeting_participants WHERE project_id = ? AND last_heartbeat < ?`,
+      [id, staleThreshold]
+    );
+
+    // Update current participant
+    await dbRun(
+      `UPDATE meeting_participants
+       SET last_heartbeat = ?,
+           is_muted = COALESCE(?, is_muted),
+           is_video_off = COALESCE(?, is_video_off),
+           is_screen_sharing = COALESCE(?, is_screen_sharing),
+           is_hand_raised = COALESCE(?, is_hand_raised)
+       WHERE project_id = ? AND peer_id = ?`,
+      [
+        now,
+        parsed.data.isMuted !== undefined ? (parsed.data.isMuted ? 1 : 0) : null,
+        parsed.data.isVideoOff !== undefined ? (parsed.data.isVideoOff ? 1 : 0) : null,
+        parsed.data.isScreenSharing !== undefined ? (parsed.data.isScreenSharing ? 1 : 0) : null,
+        parsed.data.isHandRaised !== undefined ? (parsed.data.isHandRaised ? 1 : 0) : null,
+        id,
+        parsed.data.peerId,
+      ]
+    );
+
+    res.status(200).json({ success: true, timestamp: now });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMeetingParticipants = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const activeThreshold = new Date(Date.now() - 45000).toISOString();
+    const rows = await dbAll<DBParticipantRow>(
+      `SELECT id, project_id, user_id, display_name, peer_id, is_muted, is_video_off, is_screen_sharing, is_hand_raised, last_heartbeat, joined_at
+       FROM meeting_participants
+       WHERE project_id = ? AND last_heartbeat >= ?
+       ORDER BY joined_at ASC`,
+      [id, activeThreshold]
+    );
+
+    const participants = rows.map((r) => ({
+      id: r.id,
+      projectId: r.project_id,
+      userId: r.user_id,
+      displayName: r.display_name,
+      peerId: r.peer_id,
+      isMuted: Boolean(r.is_muted),
+      isVideoOff: Boolean(r.is_video_off),
+      isScreenSharing: Boolean(r.is_screen_sharing),
+      isHandRaised: Boolean(r.is_hand_raised),
+      lastHeartbeat: r.last_heartbeat,
+      joinedAt: r.joined_at,
+    }));
+
+    res.status(200).json(participants);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendMeetingSignal = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    await checkProjectAccess(id, userId);
+
+    const parsed = meetingSignalSchema.safeParse(req.body);
+    if (!parsed.success) {
+      throw new AppError(400, 'Invalid signal payload.', 'VALIDATION_ERROR');
+    }
+
+    const signalId = uuidv4();
+    const now = new Date().toISOString();
+
+    await dbRun(
+      `INSERT INTO meeting_signals (id, project_id, from_peer_id, to_peer_id, signal_type, payload, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [signalId, id, parsed.data.fromPeerId, parsed.data.toPeerId, parsed.data.signalType, JSON.stringify(parsed.data.payload), now]
+    );
+
+    res.status(200).json({ success: true, signalId });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMeetingSignals = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id || req.user!.uid;
+    const peerId = req.query.peerId as string;
+    await checkProjectAccess(id, userId);
+
+    if (!peerId) {
+      res.status(200).json([]);
+      return;
+    }
+
+    const rows = await dbAll<DBSignalRow>(
+      `SELECT id, project_id, from_peer_id, to_peer_id, signal_type, payload, created_at
+       FROM meeting_signals
+       WHERE project_id = ? AND to_peer_id = ?
+       ORDER BY created_at ASC`,
+      [id, peerId]
+    );
+
+    if (rows.length > 0) {
+      const ids = rows.map((r) => r.id);
+      const placeholders = ids.map(() => '?').join(',');
+      await dbRun(`DELETE FROM meeting_signals WHERE id IN (${placeholders})`, ids);
+    }
+
+    const signals = rows.map((r) => {
+      let parsedPayload: any = null;
+      try {
+        parsedPayload = JSON.parse(r.payload);
+      } catch {
+        parsedPayload = r.payload;
+      }
+      return {
+        id: r.id,
+        projectId: r.project_id,
+        fromPeerId: r.from_peer_id,
+        toPeerId: r.to_peer_id,
+        signalType: r.signal_type,
+        payload: parsedPayload,
+        createdAt: r.created_at,
+      };
+    });
+
+    res.status(200).json(signals);
   } catch (error) {
     next(error);
   }

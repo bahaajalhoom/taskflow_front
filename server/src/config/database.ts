@@ -130,7 +130,7 @@ export async function initDatabase(): Promise<void> {
     );
   `);
 
-  // 6. Project Messages (Team Chat)
+  // 6. Project Messages (Team Chat - with status, edits, deletes, mentions, and reply-to)
   await dbRun(`
     CREATE TABLE IF NOT EXISTS project_messages (
       id TEXT PRIMARY KEY,
@@ -139,11 +139,34 @@ export async function initDatabase(): Promise<void> {
       sender_name TEXT NOT NULL,
       sender_email TEXT NOT NULL,
       content TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'delivered',
+      is_edited INTEGER NOT NULL DEFAULT 0,
+      is_deleted INTEGER NOT NULL DEFAULT 0,
+      reply_to_id TEXT,
+      mentions TEXT,
       created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Safe migrations for existing project_messages schema
+  const messageCols = [
+    { name: 'status', def: "TEXT NOT NULL DEFAULT 'delivered'" },
+    { name: 'is_edited', def: 'INTEGER NOT NULL DEFAULT 0' },
+    { name: 'is_deleted', def: 'INTEGER NOT NULL DEFAULT 0' },
+    { name: 'reply_to_id', def: 'TEXT' },
+    { name: 'mentions', def: 'TEXT' },
+    { name: 'updated_at', def: 'TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP' },
+  ];
+  for (const col of messageCols) {
+    try {
+      await dbRun(`ALTER TABLE project_messages ADD COLUMN ${col.name} ${col.def};`);
+    } catch {
+      // Column already exists
+    }
+  }
 
   // 7. Project Meetings (Live Video & Audio Rooms)
   await dbRun(`
@@ -162,6 +185,39 @@ export async function initDatabase(): Promise<void> {
     );
   `);
 
+  // 8. Custom Native Meeting Participants (Built from scratch)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS meeting_participants (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      peer_id TEXT NOT NULL,
+      is_muted INTEGER NOT NULL DEFAULT 0,
+      is_video_off INTEGER NOT NULL DEFAULT 0,
+      is_screen_sharing INTEGER NOT NULL DEFAULT 0,
+      is_hand_raised INTEGER NOT NULL DEFAULT 0,
+      last_heartbeat TEXT NOT NULL,
+      joined_at TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
+  // 9. WebRTC Signaling Dispatcher (Peer-to-Peer Signal Relay)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS meeting_signals (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL,
+      from_peer_id TEXT NOT NULL,
+      to_peer_id TEXT NOT NULL,
+      signal_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    );
+  `);
+
   // فهارس لتحسين سرعة الاستعلامات والكانبان ولوحة التحكم
   await dbRun('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);');
@@ -172,6 +228,8 @@ export async function initDatabase(): Promise<void> {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_tasks_proj_status ON tasks(project_id, status);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_messages_project ON project_messages(project_id, created_at);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_meetings_project ON project_meetings(project_id);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_participants_proj ON meeting_participants(project_id, last_heartbeat);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_signals_target ON meeting_signals(project_id, to_peer_id, created_at);');
 
   // Seed default demonstration users only if explicitly requested
   if (process.env.SEED_DEMO_DATA === 'true') {
