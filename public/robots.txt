@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://taskflow.apps.taqat.academy/sitemap.xml

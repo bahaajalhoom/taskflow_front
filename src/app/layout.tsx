@@ -8,16 +8,16 @@ import AntdProvider from '@/components/providers/AntdProvider';
 import AppShell from '@/components/layout/AppShell';
 import TopProgressBar from '@/components/ui/TopProgressBar';
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taskflow.apps.taqat.academy';
+const siteUrl = 'https://taskflow.apps.taqat.academy';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'TaskFlow | Precision Project & Task Management',
+    default: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     template: '%s | TaskFlow',
   },
   description:
-    'Modern enterprise project and task management platform. Precision Kanban workflows, real-time collaboration, and sprint velocity analytics.',
+    'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
   applicationName: 'TaskFlow',
   keywords: [
     'TaskFlow',
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ar_SA',
     alternateLocale: ['en_US'],
-    url: 'https://taskflow.apps.taqat.academy',
+    url: `${siteUrl}/`,
     siteName: 'TaskFlow',
     title: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     description:
@@ -57,17 +57,25 @@ export const metadata: Metadata = {
         secureUrl: `${siteUrl}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: 'TaskFlow - Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
+        alt: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
+        type: 'image/jpeg',
+      },
+      {
+        url: `${siteUrl}/og-thumb.jpg`,
+        secureUrl: `${siteUrl}/og-thumb.jpg`,
+        width: 400,
+        height: 400,
+        alt: 'TaskFlow Thumbnail',
         type: 'image/jpeg',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'TaskFlow | Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
+    title: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     description:
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
-    images: [`${siteUrl}/og-image.png`],
+    images: [`${siteUrl}/og-image.jpg`],
   },
 };
 
@@ -77,23 +85,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <meta property="og:title" content="TaskFlow | منصة إدارة المشاريع والمهام الذكية" />
-        <meta property="og:description" content="منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://taskflow.apps.taqat.academy" />
-        <meta property="og:site_name" content="TaskFlow" />
-        <meta property="og:image" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
-        <meta property="og:image:secure_url" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
-        <meta property="og:image:type" content="image/jpeg" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="TaskFlow | منصة إدارة المشاريع والمهام الذكية" />
-        <meta name="twitter:description" content="منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق." />
-        <meta name="twitter:image" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
-
         <link key="font-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="font-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
