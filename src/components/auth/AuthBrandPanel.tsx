@@ -3,7 +3,7 @@
 // ============================================================================
 // 1. IMPORTS
 // ============================================================================
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { LogoConvergenceHero } from './LogoConvergenceHero';
 import { useLanguage } from '@/context/LanguageContext';
 import Logo from '@/components/ui/Logo';
@@ -11,11 +11,18 @@ import Logo from '@/components/ui/Logo';
 // ============================================================================
 // 2. CONFIGURATION & STYLES (EASY EDIT ZONE)
 // ============================================================================
+const SCALE_CENTER = 1.25;
+const GAP_BELOW_LOGO = 28;
+const PROMPT_HEIGHT = 36;
+const MORPH_DURATION_MS = 700;
+
 export const BRAND_PANEL_STYLES = {
   panel:
     'relative hidden overflow-hidden bg-[#11100E] dark:bg-[#0A0908] text-[#F2EDE4] border-e border-[#2A2621] lg:flex lg:flex-col lg:justify-between lg:p-12 select-none min-h-dvh transition-colors',
   glowBackdrop:
-    'absolute top-0 start-0 w-[640px] h-[640px] bg-[#D4B26E]/7 rounded-full blur-3xl pointer-events-none',
+    'absolute top-0 start-0 w-[600px] h-[600px] bg-[#D4B26E]/6 rounded-full blur-3xl pointer-events-none',
+  promptText:
+    'absolute inset-x-8 text-center font-display text-xl lg:text-2xl font-bold tracking-tight text-[#E8CFA0] transition-opacity duration-500',
   heroHeading:
     'font-display text-2xl xl:text-3xl font-bold tracking-tight text-[#F2EDE4] leading-snug',
   heroSubhead:
@@ -32,17 +39,67 @@ export interface AuthBrandPanelProps {
   instant?: boolean;
 }
 
+interface CenterCoordinates {
+  x: number;
+  y: number;
+  promptTop: number;
+}
+
+// ============================================================================
+// 4. HELPER FUNCTIONS
+// ============================================================================
+function prefersReducedMotion(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
 // ============================================================================
 // 5. المكون الرئيسي (AuthBrandPanel)
-// لوحة الهوية البصرية الفاخرة لتاسك فلو بتجربة التحام الشعار الحركية الفريدة
+// لوحة العلامة التجارية الرسمية مع رسم شعار تاسك فلو خطاً بخط
+// والانتقال الحركي السلس للنظام الأول
 // ============================================================================
 export function AuthBrandPanel({ mode = 'login', instant = false }: AuthBrandPanelProps) {
   const { language } = useLanguage();
   const isArabic = language === 'ar';
-  const [isAssembled, setIsAssembled] = useState(false);
+
+  const isReduced = instant || prefersReducedMotion();
+  const [isAssembled, setIsAssembled] = useState<boolean>(isReduced);
+  const [coords, setCoords] = useState<CenterCoordinates | null>(null);
+
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const logoContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // حساب إحداثيات مركز اللوحة بدقة هندسية لانتقال سلس
+  useLayoutEffect(() => {
+    if (isReduced || !panelRef.current || !logoContainerRef.current) return;
+
+    const panelRect = panelRef.current.getBoundingClientRect();
+    const logoRect = logoContainerRef.current.getBoundingClientRect();
+
+    const scaledHeight = logoRect.height * SCALE_CENTER;
+    const totalBlockHeight = scaledHeight + GAP_BELOW_LOGO + PROMPT_HEIGHT;
+
+    const centerYOffset = panelRect.height / 2 - totalBlockHeight / 2;
+    const logoCenterY = centerYOffset + scaledHeight / 2;
+
+    const deltaX =
+      panelRect.left +
+      panelRect.width / 2 -
+      (logoRect.left + logoRect.width / 2);
+    const deltaY =
+      panelRect.top + logoCenterY - (logoRect.top + logoRect.height / 2);
+
+    setCoords({
+      x: deltaX,
+      y: deltaY,
+      promptTop: centerYOffset + scaledHeight + GAP_BELOW_LOGO,
+    });
+  }, [isReduced]);
+
+  const isCentered = !isAssembled && coords !== null;
 
   return (
-    <aside className={BRAND_PANEL_STYLES.panel} aria-hidden="true">
+    <aside ref={panelRef} className={BRAND_PANEL_STYLES.panel} aria-hidden="true">
       {/* Subtle Warm Amber Glow Ambient Atmosphere */}
       <div className={BRAND_PANEL_STYLES.glowBackdrop} />
 
@@ -60,15 +117,61 @@ export function AuthBrandPanel({ mode = 'login', instant = false }: AuthBrandPan
         </span>
       </div>
 
-      {/* Center Zone: Kinetic Logo Convergence Hero */}
-      <div className="relative z-10 my-auto flex flex-col justify-center items-center">
-        <LogoConvergenceHero
-          instant={instant}
-          onConvergenceComplete={() => setIsAssembled(true)}
-        />
+      {/* Center Zone: Kinetic Logo Drawing & Transforming Momentum */}
+      <div className="relative z-10 my-auto flex flex-col justify-center">
+        {/* Animated Logo Container */}
+        <div
+          ref={logoContainerRef}
+          className="w-max"
+          style={{
+            transform: isCentered
+              ? `translate3d(${coords.x}px, ${coords.y}px, 0px) scale(${SCALE_CENTER})`
+              : 'translate3d(0px, 0px, 0px) scale(1)',
+            transition:
+              isAssembled && !isReduced
+                ? `transform ${MORPH_DURATION_MS}ms cubic-bezier(0.23, 1, 0.32, 1)`
+                : undefined,
+            visibility: !isReduced && !coords ? 'hidden' : 'visible',
+          }}
+        >
+          <LogoConvergenceHero
+            instant={isReduced}
+            onComplete={() => setIsAssembled(true)}
+          />
+        </div>
 
-        {/* Dynamic Contextual Headline & Subhead */}
-        <div className="mt-6 text-center max-w-md mx-auto transition-opacity duration-700">
+        {/* Phase 1 Floating Prompt Text (Shown while drawing) */}
+        {!isReduced && (
+          <p
+            className={BRAND_PANEL_STYLES.promptText}
+            style={{
+              top: coords?.promptTop ?? 0,
+              opacity: isAssembled ? 0 : 1,
+              pointerEvents: 'none',
+            }}
+          >
+            <span
+              className="block animate-intro-text"
+              style={{ animationDelay: '250ms' }}
+            >
+              {mode === 'login'
+                ? isArabic
+                  ? 'هندسة مسار العمل المنظم.'
+                  : 'Architecting streamlined workflow.'
+                : isArabic
+                ? 'تجهيز مساحة العمل الهندسية.'
+                : 'Initializing your workspace.'}
+            </span>
+          </p>
+        )}
+
+        {/* Phase 2 Official Headline & Subheading (Animate in when assembled) */}
+        <div
+          className={`mt-8 transition-opacity duration-700 ${
+            isAssembled ? 'opacity-100 animate-intro-text' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ animationDelay: `${MORPH_DURATION_MS / 2}ms` }}
+        >
           <h2 className={BRAND_PANEL_STYLES.heroHeading}>
             {mode === 'login'
               ? isArabic

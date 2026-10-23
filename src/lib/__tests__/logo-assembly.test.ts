@@ -1,136 +1,136 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import {
-  TASKFLOW_LOGO_TARGETS,
-  LOGO_ASSEMBLY_CONFIG,
+  LOGO_STROKE_CONFIG,
+  SQUIRCLE_FRAME_PATH,
+  TASKFLOW_BEAM_PATHS,
   clamp,
   lerp,
-  generateElementScatterVector,
-  calculateAssemblyStage,
-  calculateConvergenceProgress,
-  getElementTransformStyle,
+  easeOutCubic,
+  calculateStepProgress,
+  calculateDashoffset,
+  calculateSparkState,
+  getDrawingStateAtTime,
 } from '../logo-assembly';
 
-describe('Logo Assembly Kinetic Engine - TDD Tests', () => {
-  describe('Brandmark Geometry Targets', () => {
-    it('accurately specifies the outer frame dimensions matching Logo.tsx', () => {
-      assert.strictEqual(TASKFLOW_LOGO_TARGETS.frame.width, 28);
-      assert.strictEqual(TASKFLOW_LOGO_TARGETS.frame.height, 28);
-      assert.strictEqual(TASKFLOW_LOGO_TARGETS.frame.rx, 6);
+describe('Sequential Logo Stroke Drawing Engine - TDD Tests', () => {
+  describe('Path Constants and Geometries', () => {
+    it('defines squircle frame path starting at top center', () => {
+      assert.strictEqual(typeof SQUIRCLE_FRAME_PATH, 'string');
+      assert.strictEqual(SQUIRCLE_FRAME_PATH.startsWith('M 16 2'), true);
     });
 
-    it('specifies three descending task flow layers with correct height and opacity', () => {
-      const { beamTop, beamMiddle, beamBottom } = TASKFLOW_LOGO_TARGETS;
-      assert.strictEqual(beamTop.height, 2);
-      assert.strictEqual(beamMiddle.height, 2);
-      assert.strictEqual(beamBottom.height, 2);
-
-      // Verify descending length hierarchy
-      assert.strictEqual(beamTop.width > beamMiddle.width, true);
-      assert.strictEqual(beamMiddle.width > beamBottom.width, true);
-
-      // Verify opacity hierarchy
-      assert.strictEqual(beamTop.opacity, 1.0);
-      assert.strictEqual(beamMiddle.opacity, 0.8);
-      assert.strictEqual(beamBottom.opacity, 0.55);
-    });
-
-    it('specifies the Champagne Gold spark node coordinates at (21, 20)', () => {
-      const { sparkNode } = TASKFLOW_LOGO_TARGETS;
-      assert.strictEqual(sparkNode.cx, 21);
-      assert.strictEqual(sparkNode.cy, 20);
-      assert.strictEqual(sparkNode.r, 2.75);
+    it('defines three horizontal beam lines and spark center coordinates', () => {
+      assert.strictEqual(TASKFLOW_BEAM_PATHS.top, 'M 7.5 9 L 24.5 9');
+      assert.strictEqual(TASKFLOW_BEAM_PATHS.middle, 'M 7.5 15 L 19.5 15');
+      assert.strictEqual(TASKFLOW_BEAM_PATHS.bottom, 'M 7.5 21 L 15.5 21');
+      assert.strictEqual(TASKFLOW_BEAM_PATHS.sparkCenter.cx, 21);
+      assert.strictEqual(TASKFLOW_BEAM_PATHS.sparkCenter.cy, 20);
     });
   });
 
-  describe('Kinetic Math Helpers', () => {
-    it('clamps values within bounds', () => {
-      assert.strictEqual(clamp(-5, 0, 10), 0);
-      assert.strictEqual(clamp(15, 0, 10), 10);
-      assert.strictEqual(clamp(5, 0, 10), 5);
+  describe('Math and Easing Helpers', () => {
+    it('clamps values properly', () => {
+      assert.strictEqual(clamp(-10, 0, 1), 0);
+      assert.strictEqual(clamp(2, 0, 1), 1);
+      assert.strictEqual(clamp(0.45, 0, 1), 0.45);
     });
 
-    it('interpolates linearly between start and end values', () => {
+    it('lerps smoothly between start and end values', () => {
       assert.strictEqual(lerp(0, 100, 0), 0);
       assert.strictEqual(lerp(0, 100, 0.5), 50);
       assert.strictEqual(lerp(0, 100, 1), 100);
-      assert.strictEqual(lerp(50, 10, 0.5), 30);
+    });
+
+    it('applies easeOutCubic curve correctly', () => {
+      assert.strictEqual(easeOutCubic(0), 0);
+      assert.strictEqual(easeOutCubic(1), 1);
+      // easeOut is faster at the beginning (at 0.5 it should be > 0.5)
+      assert.strictEqual(easeOutCubic(0.5) > 0.5, true);
     });
   });
 
-  describe('generateElementScatterVector()', () => {
-    it('produces non-zero scatter offsets within bounds', () => {
-      for (let i = 0; i < 5; i++) {
-        const vector = generateElementScatterVector(i, 48);
-        assert.strictEqual(typeof vector.offsetX, 'number');
-        assert.strictEqual(typeof vector.offsetY, 'number');
-        assert.strictEqual(typeof vector.rotationDeg, 'number');
-        assert.strictEqual(vector.scale >= 0.7 && vector.scale <= 1.2, true);
-        assert.strictEqual(vector.opacity >= 0.2 && vector.opacity <= 1.0, true);
-      }
+  describe('calculateStepProgress()', () => {
+    it('returns 0 before step start', () => {
+      assert.strictEqual(calculateStepProgress(100, 200, 400), 0);
     });
 
-    it('is deterministic for the same index and spread parameter', () => {
-      const a = generateElementScatterVector(2, 50);
-      const b = generateElementScatterVector(2, 50);
-      assert.deepStrictEqual(a, b);
+    it('returns 1 after step end', () => {
+      assert.strictEqual(calculateStepProgress(500, 200, 400), 1);
+    });
+
+    it('returns interpolated progress between start and end', () => {
+      const p = calculateStepProgress(300, 200, 400);
+      assert.strictEqual(p > 0 && p < 1, true);
     });
   });
 
-  describe('calculateAssemblyStage() State Machine', () => {
-    it('returns scattered before convergeDelayMs', () => {
-      assert.strictEqual(calculateAssemblyStage(0), 'scattered');
-      assert.strictEqual(calculateAssemblyStage(250), 'scattered');
+  describe('calculateDashoffset()', () => {
+    it('returns full length when progress is 0', () => {
+      assert.strictEqual(calculateDashoffset(102, 0), 102);
     });
 
-    it('returns converging during the movement window', () => {
-      assert.strictEqual(calculateAssemblyStage(500), 'converging');
-      assert.strictEqual(calculateAssemblyStage(1000), 'converging');
+    it('returns 0 when progress is 1', () => {
+      assert.strictEqual(calculateDashoffset(102, 1), 0);
     });
 
-    it('returns pulse during the resonance phase', () => {
-      const { pulseDelayMs } = LOGO_ASSEMBLY_CONFIG;
-      assert.strictEqual(calculateAssemblyStage(pulseDelayMs + 50), 'pulse');
-    });
-
-    it('returns docked once all animation cycles have settled', () => {
-      assert.strictEqual(calculateAssemblyStage(3000), 'docked');
+    it('returns proportional offset during stroke draw', () => {
+      const offset = calculateDashoffset(100, 0.5);
+      assert.strictEqual(offset, 50);
     });
   });
 
-  describe('calculateConvergenceProgress()', () => {
-    it('returns 0 when elapsed time is within delay', () => {
-      assert.strictEqual(calculateConvergenceProgress(100), 0);
+  describe('calculateSparkState()', () => {
+    it('returns scale 0 and opacity 0 before spark start time', () => {
+      const state = calculateSparkState(1000);
+      assert.strictEqual(state.scale, 0);
+      assert.strictEqual(state.opacity, 0);
     });
 
-    it('returns 1 when elapsed time has reached or exceeded pulse delay', () => {
-      const { pulseDelayMs } = LOGO_ASSEMBLY_CONFIG;
-      assert.strictEqual(calculateConvergenceProgress(pulseDelayMs), 1);
-      assert.strictEqual(calculateConvergenceProgress(pulseDelayMs + 500), 1);
-    });
-
-    it('returns values between 0 and 1 during convergence', () => {
-      const progress = calculateConvergenceProgress(850);
-      assert.strictEqual(progress > 0 && progress < 1, true);
+    it('returns full scale and opacity after spark end time', () => {
+      const state = calculateSparkState(1350);
+      assert.strictEqual(state.scale, 1.0);
+      assert.strictEqual(state.opacity, 1.0);
     });
   });
 
-  describe('getElementTransformStyle()', () => {
-    it('returns scattered offset when progress is 0', () => {
-      const vector = { offsetX: 30, offsetY: -20, rotationDeg: 15, scale: 0.8, opacity: 0.4 };
-      const style = getElementTransformStyle(vector, 0);
-      assert.strictEqual(style.transform.includes('30.0px'), true);
-      assert.strictEqual(style.transform.includes('-20.0px'), true);
-      assert.strictEqual(style.opacity, 0.4);
+  describe('getDrawingStateAtTime() State Sequence', () => {
+    it('shows only frame drawing at early phase (t = 200ms)', () => {
+      const state = getDrawingStateAtTime(200);
+      assert.strictEqual(state.frameDashoffset < 102, true);
+      assert.strictEqual(state.beamTopDashoffset, 17);
+      assert.strictEqual(state.beamMiddleDashoffset, 12);
+      assert.strictEqual(state.beamBottomDashoffset, 8);
+      assert.strictEqual(state.sparkScale, 0);
+      assert.strictEqual(state.isComplete, false);
     });
 
-    it('returns zero offset and full opacity when progress is 1', () => {
-      const vector = { offsetX: 30, offsetY: -20, rotationDeg: 15, scale: 0.8, opacity: 0.4 };
-      const style = getElementTransformStyle(vector, 1);
-      assert.strictEqual(style.transform.includes('0.0px, 0.0px'), true);
-      assert.strictEqual(style.transform.includes('rotate(0.0deg)'), true);
-      assert.strictEqual(style.transform.includes('scale(1.00)'), true);
-      assert.strictEqual(style.opacity, 1);
+    it('draws top beam sequentially after frame (t = 600ms)', () => {
+      const state = getDrawingStateAtTime(600);
+      assert.strictEqual(state.frameDashoffset, 0); // Frame complete
+      assert.strictEqual(state.beamTopDashoffset < 17, true); // Beam 1 drawing
+      assert.strictEqual(state.beamMiddleDashoffset, 12);
+      assert.strictEqual(state.beamBottomDashoffset, 8);
+    });
+
+    it('draws middle and bottom beams sequentially (t = 800ms and t = 1000ms)', () => {
+      const stateMid = getDrawingStateAtTime(800);
+      assert.strictEqual(stateMid.beamTopDashoffset, 0);
+      assert.strictEqual(stateMid.beamMiddleDashoffset < 12, true);
+
+      const stateBtm = getDrawingStateAtTime(1000);
+      assert.strictEqual(stateBtm.beamMiddleDashoffset, 0);
+      assert.strictEqual(stateBtm.beamBottomDashoffset < 8, true);
+    });
+
+    it('marks entire drawing as complete after total duration (t = 1500ms)', () => {
+      const state = getDrawingStateAtTime(1500);
+      assert.strictEqual(state.frameDashoffset, 0);
+      assert.strictEqual(state.beamTopDashoffset, 0);
+      assert.strictEqual(state.beamMiddleDashoffset, 0);
+      assert.strictEqual(state.beamBottomDashoffset, 0);
+      assert.strictEqual(state.sparkScale, 1.0);
+      assert.strictEqual(state.isComplete, true);
     });
   });
 });
