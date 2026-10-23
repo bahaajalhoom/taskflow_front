@@ -53,7 +53,7 @@ const CONFIG = {
 const STYLES = {
   container: 'max-w-5xl mx-auto space-y-6 py-4',
   backButton: '!px-0 mb-2 !text-[#7A5818] dark:!text-[#D4B26E] font-semibold',
-  pageTitle: '!mb-0 !text-xl !font-bold font-display text-[#1B1915] dark:text-[#EFE9DD]',
+  pageTitle: '!mb-0 !text-xl !font-bold font-sans text-[#1B1915] dark:text-[#EFE9DD] flex items-center leading-normal',
   pageSubtitle: 'text-xs !text-[#5A5348] dark:!text-[#B5AC9C]',
   tactileCard:
     'tactile-card border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark',

@@ -147,7 +147,7 @@ const STYLES = {
   container: 'space-y-4',
   card: 'tactile-card border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark',
   cardFlat: 'tactile-card border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-none',
-  pageTitle: '!mb-0 !text-xl sm:!text-2xl !font-bold tracking-tight text-[#1B1915] dark:text-[#EFE9DD] font-display',
+  pageTitle: '!mb-0 !text-xl sm:!text-2xl !font-bold tracking-tight text-[#1B1915] dark:text-[#EFE9DD] font-sans flex items-center leading-normal',
   primaryGoldButton:
     'tactile-btn !bg-[#7A5818] hover:!bg-[#5E420E] dark:!bg-[#D4B26E] dark:hover:!bg-[#E2C88E] !border-transparent !text-white dark:!text-[#1A1408] font-bold shadow-xs text-sm',
   secondaryButton:
@@ -1085,7 +1085,7 @@ export default function ProjectDetailsPage() {
       {/* لوحة تحكم المشروع وشريط الفلاتر الموحد: شلنا الكروت العملاقة والمكررة وصارت اللوحة خفيفة ومرتبة */}
       <div className="tactile-card border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark rounded-xl p-4 sm:p-5 space-y-4">
         {/* السطر الأول: اسم المشروع، شارة المالك، إحصائيات سريعة، وأزرار الإعدادات وإضافة مهمة */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-h-[40px]">
           <div className="flex items-center gap-2.5 flex-wrap">
             <Title level={2} className={STYLES.pageTitle}>
               {project.name}
