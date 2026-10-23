@@ -16,6 +16,12 @@ export const LANDING_MOTION = {
     delayMs: 180,
     offsetPx: 48,
   },
+  lateralCollision: {
+    durationMs: 950,
+    offscreenOffsetPx: 1200,
+    reboundPx: 26,
+    shudderPx: 14,
+  },
   sectionStagger: {
     baseDelayMs: 160,
     stepDelayMs: 120,
@@ -115,9 +121,9 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
 export function calculateLateralCollisionKeyframe(
   progress: number,
   side: 'start' | 'end',
-  initialOffset = 90
+  initialOffset = 1200
 ): LateralCollisionState {
-  const dir = side === 'start' ? -1 : 1; // start يأتي من السالب نحو الصفر، end يأتي من الموجب نحو الصفر
+  const dir = side === 'start' ? -1 : 1; // start يأتي من أقصى الخارج سالباً نحو الصفر، end يأتي موجباً نحو الصفر
 
   if (progress <= 0) {
     return { translateX: dir * initialOffset, translateY: 0, scaleX: 1, scaleY: 1 };
@@ -126,27 +132,27 @@ export function calculateLateralCollisionKeyframe(
     return { translateX: 0, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 1. مرحلة الانطلاق والاصطدام في المنتصف (0 -> 0.5)
-  if (progress <= 0.5) {
-    const t = progress / 0.5;
+  // 1. مرحلة الانطلاق الصاروخي من خارج الشاشة والاصطدام في المنتصف (0 -> 0.44)
+  if (progress <= 0.44) {
+    const t = progress / 0.44;
     const currentX = dir * initialOffset * (1 - t * t);
     const rounded = Math.round(currentX);
     return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 2. مرحلة الارتداد الأفقي المباشر بعد التصادم (0.5 -> 0.75)
-  // يرتد العنصر إلى جهته الأصلية بنسبة خفيفة (حوالي 12px)
-  if (progress <= 0.75) {
-    const t = (progress - 0.5) / 0.25;
-    const reboundX = dir * 12 * Math.sin(t * Math.PI);
+  // 2. مرحلة الارتداد الأفقي القوي المباشر بعد التصادم (0.44 -> 0.7)
+  // يرتد العنصر إلى جهته الأصلية بمسافة 24px
+  if (progress <= 0.7) {
+    const t = (progress - 0.44) / 0.26;
+    const reboundX = dir * 24 * Math.sin(t * Math.PI);
     const rounded = Math.round(reboundX);
     return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 3. مرحلة الاهتزاز الأفقي الترددي الرسمي السريع (0.75 -> 1.0)
-  // تذبذب أفقي نقي: +5px, -3px, 0px
-  const t = (progress - 0.75) / 0.25;
-  const shudderX = dir * 6 * Math.sin(t * Math.PI * 2) * (1 - t);
+  // 3. مرحلة الاهتزاز الأفقي الترددي الرسمي السريع المتلاشي (0.7 -> 1.0)
+  // تذبذب أفقي نقي: +14px, -8px, +4px, 0px
+  const t = (progress - 0.7) / 0.3;
+  const shudderX = dir * 14 * Math.sin(t * Math.PI * 2) * (1 - t);
   const rounded = Math.round(shudderX);
   return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
 }

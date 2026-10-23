@@ -56,20 +56,20 @@ test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
   });
 
   await t.test('Lateral collision and horizontal shudder physics: no squish, pure official horizontal tremor', () => {
-    // Before impact (flying inward from start)
+    // Before impact (flying inward from extreme offscreen side)
     const beforeImpact = calculateLateralCollisionKeyframe(0.2, 'start');
-    assert.ok(beforeImpact.translateX !== 0);
+    assert.ok(Math.abs(beforeImpact.translateX) > 100, 'Starts from completely outside the screen viewport');
     assert.strictEqual(beforeImpact.translateY, 0, 'Zero vertical shift');
     assert.strictEqual(beforeImpact.scaleX, 1, 'Zero squishy distortion (Scale stays 1)');
     assert.strictEqual(beforeImpact.scaleY, 1, 'Zero squishy distortion (Scale stays 1)');
 
-    // Collision Moment (progress = 0.5): hits collision point
-    const atImpact = calculateLateralCollisionKeyframe(0.5, 'start');
+    // Collision Moment (progress = 0.44): hits collision point
+    const atImpact = calculateLateralCollisionKeyframe(0.44, 'start');
     assert.strictEqual(atImpact.translateX, 0);
     assert.strictEqual(atImpact.scaleX, 1, 'Rigid official structure');
 
-    // Rebound phase (progress = 0.65): rebounds outward horizontally
-    const atRebound = calculateLateralCollisionKeyframe(0.65, 'start');
+    // Rebound phase (progress = 0.57): rebounds outward horizontally
+    const atRebound = calculateLateralCollisionKeyframe(0.57, 'start');
     assert.ok(atRebound.translateX < 0, 'Rebounds outward back towards its side');
 
     // Settle phase (progress = 1.0): perfectly centered at rest
