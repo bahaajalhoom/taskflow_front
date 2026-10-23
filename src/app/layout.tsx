@@ -79,6 +79,21 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta property="og:title" content="TaskFlow | منصة إدارة المشاريع والمهام الذكية" />
+        <meta property="og:description" content="منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://taskflow.apps.taqat.academy" />
+        <meta property="og:site_name" content="TaskFlow" />
+        <meta property="og:image" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
+        <meta property="og:image:secure_url" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="TaskFlow | منصة إدارة المشاريع والمهام الذكية" />
+        <meta name="twitter:description" content="منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق." />
+        <meta name="twitter:image" content="https://taskflow.apps.taqat.academy/og-image.jpg" />
+
         <link key="font-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="font-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
