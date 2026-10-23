@@ -335,3 +335,65 @@ html.dark .tactile-card:hover {
 .priority-dot-low {
   background-color: var(--pr-low-fg);
 }
+
+/* ============================================================================
+   TaskFlow Signature Organic Tile Drop & Sorting Physics Animation
+   ============================================================================ */
+@keyframes tile-drop {
+  0% {
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    transform: translateY(-120vh);
+  }
+  58% {
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+    transform: translateY(0) scale(1.12, 0.84);
+  }
+  74% {
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    transform: translateY(-22%) scale(0.96, 1.05);
+  }
+  86% {
+    animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+    transform: translateY(0) scale(1.05, 0.94);
+  }
+  93% {
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+    transform: translateY(-6%) scale(1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes intro-text {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-tile-drop {
+  animation: tile-drop 850ms both;
+}
+
+.animate-intro-text {
+  animation: intro-text 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.tile-leaf {
+  border-start-start-radius: 32%;
+  border-end-end-radius: 32%;
+  border-start-end-radius: 7%;
+  border-end-start-radius: 7%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-tile-drop,
+  .animate-intro-text {
+    animation: none !important;
+  }
+}

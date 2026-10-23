@@ -107,6 +107,13 @@ export default function AppShell({ children }: AppShellProps) {
     });
   };
 
+  const isAuthPage =
+    pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+
+  if (isAuthPage) {
+    return <div className="min-h-dvh w-full bg-[var(--bg)] text-[var(--text)]">{children}</div>;
+  }
+
   const isPublicPage = !user || CONFIG.publicRoutes.includes(pathname as any);
 
   return (
