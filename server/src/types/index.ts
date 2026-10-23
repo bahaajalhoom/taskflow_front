@@ -1,8 +1,9 @@
 import { Request } from 'express';
+import { CustomPermissions } from '../lib/permissions.js';
 
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
-export type UserRole = 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer';
+export type UserRole = 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | 'custom';
 
 export interface UserProfile {
   id: string;
@@ -20,6 +21,7 @@ export interface ProjectMemberDetail {
   displayName: string;
   role: UserRole;
   joinedAt?: string;
+  customPermissions?: CustomPermissions | null;
 }
 
 export interface Project {

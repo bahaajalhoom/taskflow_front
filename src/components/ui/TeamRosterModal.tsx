@@ -23,10 +23,17 @@ import {
   UserAddOutlined,
   UserDeleteOutlined,
   SearchOutlined,
+  SlidersOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { Project, ProjectMemberDetail } from '@/types';
 import { useLanguage, TranslationKey } from '@/context/LanguageContext';
 import { DataService } from '@/services/dataStore';
+import {
+  CustomPermissions,
+  DEFAULT_CUSTOM_PERMISSIONS,
+  parseCustomPermissions,
+} from '@/lib/permissions';
 
 // ============================================================================
 // 2. CONFIGURATION & STYLES (EASY EDIT ZONE)
@@ -59,6 +66,8 @@ const STYLES = {
     'm-0 text-xs font-semibold border-emerald-500/30 bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded',
   viewerTag:
     'm-0 text-xs font-semibold border-cyan-500/30 bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded',
+  customTag:
+    'm-0 text-xs font-semibold border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded flex items-center gap-1',
   memberTag:
     'm-0 text-xs font-semibold border-slate-500/30 bg-slate-500/10 text-slate-300 px-2 py-0.5 rounded',
 } as const;
@@ -93,6 +102,7 @@ interface MemberRowItem {
   role: string;
   domainTitle: string;
   isOwner: boolean;
+  customPermissions?: CustomPermissions | null;
 }
 
 // ============================================================================
@@ -110,7 +120,11 @@ export default function TeamRosterModal({
 
   const [project, setProject] = useState<Project | null>(initialProject);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'member' | 'maintainer' | 'viewer'>('member');
+  const [inviteRole, setInviteRole] = useState<'member' | 'maintainer' | 'viewer' | 'custom'>('member');
+  const [inviteCustomPerms, setInviteCustomPerms] = useState<CustomPermissions>({ ...DEFAULT_CUSTOM_PERMISSIONS });
+  const [editingCustomMember, setEditingCustomMember] = useState<MemberRowItem | null>(null);
+  const [memberCustomPerms, setMemberCustomPerms] = useState<CustomPermissions>({ ...DEFAULT_CUSTOM_PERMISSIONS });
+  const [isSavingCustom, setIsSavingCustom] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
@@ -126,6 +140,8 @@ export default function TeamRosterModal({
     if (!open) {
       setInviteEmail('');
       setInviteRole('member');
+      setInviteCustomPerms({ ...DEFAULT_CUSTOM_PERMISSIONS });
+      setEditingCustomMember(null);
       setSearchQuery('');
     }
   }, [open]);
@@ -155,6 +171,7 @@ export default function TeamRosterModal({
         role,
         domainTitle: info?.domainTitle || getDomainTitle(role, email),
         isOwner,
+        customPermissions: info?.customPermissions || null,
       };
     });
 
@@ -196,11 +213,19 @@ export default function TeamRosterModal({
 
     try {
       setIsAdding(true);
-      const updated = await DataService.addProjectMember(project.id, cleanEmail, currentUserId, inviteRole);
+      const customPermsPayload = inviteRole === 'custom' ? inviteCustomPerms : null;
+      const updated = await DataService.addProjectMember(
+        project.id,
+        cleanEmail,
+        currentUserId,
+        inviteRole,
+        customPermsPayload
+      );
       setProject(updated);
       onProjectUpdate?.(updated);
       setInviteEmail('');
       setInviteRole('member');
+      setInviteCustomPerms({ ...DEFAULT_CUSTOM_PERMISSIONS });
       message.success(
         isArabic
           ? `تمت إضافة العضو بصلاحية ${inviteRole} بنجاح`
@@ -214,7 +239,11 @@ export default function TeamRosterModal({
   };
 
   // Handle changing member role inline (Post-invite permission change)
-  const handleUpdateRole = async (memberId: string, newRole: string) => {
+  const handleUpdateRole = async (
+    memberId: string,
+    newRole: string,
+    customPerms?: CustomPermissions | null
+  ) => {
     if (!project || !currentUserId) return;
     const memberEmail = project.memberDetails?.[memberId]?.email;
 
@@ -228,6 +257,7 @@ export default function TeamRosterModal({
           [memberId]: {
             ...prev.memberDetails[memberId],
             role: newRole as any,
+            customPermissions: customPerms ?? prev.memberDetails[memberId].customPermissions,
           },
         },
       };
@@ -236,7 +266,14 @@ export default function TeamRosterModal({
     });
 
     try {
-      const updated = await DataService.updateProjectMemberRole(project.id, memberId, newRole, currentUserId, memberEmail);
+      const updated = await DataService.updateProjectMemberRole(
+        project.id,
+        memberId,
+        newRole,
+        currentUserId,
+        memberEmail,
+        customPerms
+      );
       setProject(updated);
       onProjectUpdate?.(updated);
       message.success(
@@ -249,6 +286,26 @@ export default function TeamRosterModal({
         onProjectUpdate?.(current);
       }
       message.error(err?.message || 'Failed to update member role');
+    }
+  };
+
+  const openCustomModalForMember = (member: MemberRowItem) => {
+    setEditingCustomMember(member);
+    if (member.customPermissions) {
+      setMemberCustomPerms({ ...member.customPermissions });
+    } else {
+      setMemberCustomPerms({ ...DEFAULT_CUSTOM_PERMISSIONS });
+    }
+  };
+
+  const handleSaveMemberCustomPerms = async () => {
+    if (!editingCustomMember) return;
+    try {
+      setIsSavingCustom(true);
+      await handleUpdateRole(editingCustomMember.uid, 'custom', memberCustomPerms);
+      setEditingCustomMember(null);
+    } finally {
+      setIsSavingCustom(false);
     }
   };
 
@@ -362,6 +419,7 @@ export default function TeamRosterModal({
                     { value: 'member', label: isArabic ? 'عضو (قراءة/كتابة)' : 'Member (Read/Write)' },
                     { value: 'maintainer', label: isArabic ? 'مشرف (إدارة)' : 'Maintainer (Admin)' },
                     { value: 'viewer', label: isArabic ? 'مشاهد (قراءة فقط)' : 'Viewer (Read Only)' },
+                    { value: 'custom', label: isArabic ? 'مخصص (صلاحيات دقيقة)' : 'Custom (Granular)' },
                   ]}
                 />
 
@@ -375,6 +433,77 @@ export default function TeamRosterModal({
                   {isArabic ? '+ إضافة عضو' : '+ Add Member'}
                 </Button>
               </div>
+
+              {/* Granular Custom Permissions Checkboxes for Pre-invite */}
+              {inviteRole === 'custom' && (
+                <div className="mt-3 pt-3 border-t border-[#DDDAD3] dark:border-[#2C2824] bg-white/70 dark:bg-[#100E0D]/70 p-3 rounded-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                      {isArabic ? 'تحديد الصلاحيات الدقيقة للمستخدم:' : 'Specify granular permissions:'}
+                    </span>
+                    <span className="text-[10px] font-mono text-[#7A5818] dark:text-[#D4B26E] font-semibold">
+                      {isArabic ? 'صلاحيات مخصصة (Custom RBAC)' : 'Custom Role Configuration'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer text-[#1B1915] dark:text-[#EFE9DD] select-none">
+                      <input
+                        type="checkbox"
+                        checked={inviteCustomPerms.canViewTasks}
+                        onChange={(e) =>
+                          setInviteCustomPerms((p) => ({ ...p, canViewTasks: e.target.checked }))
+                        }
+                        className="rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+                      />
+                      <span>{isArabic ? 'قراءة وعرض المهام' : 'View tasks'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-[#1B1915] dark:text-[#EFE9DD] select-none">
+                      <input
+                        type="checkbox"
+                        checked={inviteCustomPerms.canCreateTasks}
+                        onChange={(e) =>
+                          setInviteCustomPerms((p) => ({ ...p, canCreateTasks: e.target.checked }))
+                        }
+                        className="rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+                      />
+                      <span>{isArabic ? 'إنشاء مهام جديدة' : 'Create tasks'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-[#1B1915] dark:text-[#EFE9DD] select-none">
+                      <input
+                        type="checkbox"
+                        checked={inviteCustomPerms.canEditTasks}
+                        onChange={(e) =>
+                          setInviteCustomPerms((p) => ({ ...p, canEditTasks: e.target.checked }))
+                        }
+                        className="rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+                      />
+                      <span>{isArabic ? 'تعديل وتحديث المهام' : 'Edit tasks'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-[#1B1915] dark:text-[#EFE9DD] select-none">
+                      <input
+                        type="checkbox"
+                        checked={inviteCustomPerms.canDeleteTasks}
+                        onChange={(e) =>
+                          setInviteCustomPerms((p) => ({ ...p, canDeleteTasks: e.target.checked }))
+                        }
+                        className="rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+                      />
+                      <span>{isArabic ? 'حذف المهام' : 'Delete tasks'}</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-[#1B1915] dark:text-[#EFE9DD] select-none">
+                      <input
+                        type="checkbox"
+                        checked={inviteCustomPerms.canManageMembers}
+                        onChange={(e) =>
+                          setInviteCustomPerms((p) => ({ ...p, canManageMembers: e.target.checked }))
+                        }
+                        className="rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+                      />
+                      <span>{isArabic ? 'إدارة ودعوة الأعضاء' : 'Manage members'}</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -459,6 +588,11 @@ export default function TeamRosterModal({
                           <Tag className={STYLES.maintainerTag}>Maintainer</Tag>
                         ) : m.role === 'viewer' ? (
                           <Tag className={STYLES.viewerTag}>Viewer</Tag>
+                        ) : m.role === 'custom' ? (
+                          <Tag className={STYLES.customTag}>
+                            <SafetyCertificateOutlined className="text-[11px]" />
+                            <span>{isArabic ? 'مخصص' : 'Custom'}</span>
+                          </Tag>
                         ) : (
                           <Tag className={STYLES.memberTag}>Member</Tag>
                         )}
@@ -476,14 +610,35 @@ export default function TeamRosterModal({
                             <Select
                               size="small"
                               value={m.role === 'trainee' ? 'viewer' : m.role}
-                              onChange={(val) => handleUpdateRole(m.uid, val)}
+                              onChange={(val) => {
+                                if (val === 'custom') {
+                                  openCustomModalForMember(m);
+                                } else {
+                                  handleUpdateRole(m.uid, val);
+                                }
+                              }}
                               className="w-28 text-xs text-start"
                               options={[
                                 { value: 'maintainer', label: 'Maintainer' },
                                 { value: 'member', label: 'Member' },
                                 { value: 'viewer', label: 'Viewer' },
+                                { value: 'custom', label: isArabic ? 'مخصص' : 'Custom' },
                               ]}
                             />
+
+                            {/* Configure Custom Permissions Button */}
+                            {m.role === 'custom' && (
+                              <Tooltip title={isArabic ? 'تعديل الصلاحيات المخصصة' : 'Configure granular permissions'}>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  icon={<SlidersOutlined className="text-[#7A5818] dark:text-[#D4B26E]" />}
+                                  onClick={() => openCustomModalForMember(m)}
+                                  className="text-xs"
+                                  aria-label="Configure permissions"
+                                />
+                              </Tooltip>
+                            )}
 
                             {/* Remove Member Button */}
                             <Popconfirm
@@ -519,6 +674,143 @@ export default function TeamRosterModal({
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Member Custom Permissions Modal */}
+      <Modal
+        open={Boolean(editingCustomMember)}
+        onCancel={() => setEditingCustomMember(null)}
+        onOk={handleSaveMemberCustomPerms}
+        confirmLoading={isSavingCustom}
+        okText={isArabic ? 'حفظ الصلاحيات' : 'Save Permissions'}
+        cancelText={isArabic ? 'إلغاء' : 'Cancel'}
+        width={560}
+        centered
+        title={
+          <div className="flex items-center gap-2 font-bold text-sm text-[#1B1915] dark:text-[#EFE9DD]">
+            <SlidersOutlined className="text-[#7A5818] dark:text-[#D4B26E]" />
+            <span>
+              {isArabic
+                ? `صلاحيات مخصصة: ${editingCustomMember?.displayName || ''}`
+                : `Custom Role Configuration: ${editingCustomMember?.displayName || ''}`}
+            </span>
+          </div>
+        }
+      >
+        <div className="py-3 space-y-4">
+          <div className="p-3 bg-[#EDECE8]/40 dark:bg-[#141211] rounded-lg border border-[#DDDAD3] dark:border-[#2C2824] text-xs text-[#5A5348] dark:text-[#B5AC9C]">
+            {isArabic
+              ? 'حدد بدقة الإجراءات المصرح بها لهذا العضو داخل المشروع. لن يتمكن من القيام بأي إجراء غير محدد.'
+              : 'Select granular permissions authorized for this team member. Unauthorized actions will be strictly forbidden.'}
+          </div>
+
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 p-2.5 rounded-md hover:bg-[#EDECE8]/30 dark:hover:bg-[#1C1A17]/40 cursor-pointer transition-colors border border-[#DDDAD3]/50 dark:border-[#2C2824]/50">
+              <input
+                type="checkbox"
+                checked={memberCustomPerms.canViewTasks}
+                onChange={(e) =>
+                  setMemberCustomPerms((p) => ({ ...p, canViewTasks: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+              />
+              <div>
+                <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                  {isArabic ? 'قراءة وعرض المهام (View Tasks)' : 'View Tasks'}
+                </div>
+                <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                  {isArabic
+                    ? 'رؤية لوحة المهام وقراءة تفاصيل البطاقات'
+                    : 'Access Kanban board and view task details'}
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-2.5 rounded-md hover:bg-[#EDECE8]/30 dark:hover:bg-[#1C1A17]/40 cursor-pointer transition-colors border border-[#DDDAD3]/50 dark:border-[#2C2824]/50">
+              <input
+                type="checkbox"
+                checked={memberCustomPerms.canCreateTasks}
+                onChange={(e) =>
+                  setMemberCustomPerms((p) => ({ ...p, canCreateTasks: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+              />
+              <div>
+                <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                  {isArabic ? 'إنشاء مهام جديدة (Create Tasks)' : 'Create Tasks'}
+                </div>
+                <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                  {isArabic
+                    ? 'إضافة بطاقات جديدة في لوحة الكانبان'
+                    : 'Add new tasks across Kanban columns'}
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-2.5 rounded-md hover:bg-[#EDECE8]/30 dark:hover:bg-[#1C1A17]/40 cursor-pointer transition-colors border border-[#DDDAD3]/50 dark:border-[#2C2824]/50">
+              <input
+                type="checkbox"
+                checked={memberCustomPerms.canEditTasks}
+                onChange={(e) =>
+                  setMemberCustomPerms((p) => ({ ...p, canEditTasks: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+              />
+              <div>
+                <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                  {isArabic ? 'تعديل وتحديث المهام (Edit Tasks)' : 'Edit Tasks'}
+                </div>
+                <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                  {isArabic
+                    ? 'تعديل العناوين، الأوصاف، سحب وإفلات الحالة، وتغيير التواريخ'
+                    : 'Edit descriptions, drag-and-drop status changes, and set due dates'}
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-2.5 rounded-md hover:bg-[#EDECE8]/30 dark:hover:bg-[#1C1A17]/40 cursor-pointer transition-colors border border-[#DDDAD3]/50 dark:border-[#2C2824]/50">
+              <input
+                type="checkbox"
+                checked={memberCustomPerms.canDeleteTasks}
+                onChange={(e) =>
+                  setMemberCustomPerms((p) => ({ ...p, canDeleteTasks: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+              />
+              <div>
+                <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                  {isArabic ? 'حذف المهام (Delete Tasks)' : 'Delete Tasks'}
+                </div>
+                <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                  {isArabic
+                    ? 'حذف البطاقات من لوحة المشروع نهائياً'
+                    : 'Permanently remove tasks from the project'}
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-2.5 rounded-md hover:bg-[#EDECE8]/30 dark:hover:bg-[#1C1A17]/40 cursor-pointer transition-colors border border-[#DDDAD3]/50 dark:border-[#2C2824]/50">
+              <input
+                type="checkbox"
+                checked={memberCustomPerms.canManageMembers}
+                onChange={(e) =>
+                  setMemberCustomPerms((p) => ({ ...p, canManageMembers: e.target.checked }))
+                }
+                className="mt-0.5 rounded border-[#DDDAD3] dark:border-[#2C2824] text-[#7A5818] focus:ring-0"
+              />
+              <div>
+                <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                  {isArabic ? 'إدارة ودعوة الأعضاء (Manage Members)' : 'Manage Members'}
+                </div>
+                <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                  {isArabic
+                    ? 'دعوة زملاء جدد وإدارة أدوار أعضاء الفريق'
+                    : 'Invite organizational peers and manage team roles'}
+                </div>
+              </div>
+            </label>
           </div>
         </div>
       </Modal>

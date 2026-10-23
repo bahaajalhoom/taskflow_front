@@ -89,11 +89,19 @@ export async function initDatabase(): Promise<void> {
       user_id TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'member',
       joined_at TEXT NOT NULL,
+      custom_permissions TEXT,
       PRIMARY KEY (project_id, user_id),
       FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Ensure custom_permissions column exists for existing tables
+  try {
+    await dbRun('ALTER TABLE project_members ADD COLUMN custom_permissions TEXT;');
+  } catch {
+    // Column already exists, safe to ignore
+  }
 
   // 4. Tasks table
   await dbRun(`

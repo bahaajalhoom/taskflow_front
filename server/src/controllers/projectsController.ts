@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuthenticatedRequest, Project, ProjectMemberDetail } from '../types/index.js';
 import { dbAll, dbGet, dbRun } from '../config/database.js';
 import { AppError } from '../middlewares/errorHandler.js';
+import { parseCustomPermissions, serializeCustomPermissions, CustomPermissions } from '../lib/permissions.js';
 import {
   createProjectSchema,
   updateProjectSchema,
@@ -27,10 +28,11 @@ interface DBProject {
 
 interface DBMemberRow {
   user_id: string;
-  role: 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer';
+  role: 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | 'custom' | string;
   joined_at: string;
   email: string;
   display_name: string;
+  custom_permissions?: string | null;
 }
 
 async function getProjectMembersMap(projectId: string): Promise<{
@@ -38,7 +40,7 @@ async function getProjectMembersMap(projectId: string): Promise<{
   memberDetails: Record<string, ProjectMemberDetail>;
 }> {
   const rows = await dbAll<DBMemberRow>(
-    `SELECT pm.user_id, pm.role, pm.joined_at, u.email, u.display_name
+    `SELECT pm.user_id, pm.role, pm.joined_at, pm.custom_permissions, u.email, u.display_name
      FROM project_members pm
      INNER JOIN users u ON pm.user_id = u.id
      WHERE pm.project_id = ?`,
@@ -50,13 +52,18 @@ async function getProjectMembersMap(projectId: string): Promise<{
 
   for (const row of rows) {
     memberIds.push(row.user_id);
+    const customPerms = row.custom_permissions
+      ? parseCustomPermissions(row.custom_permissions)
+      : null;
+
     memberDetails[row.user_id] = {
       id: row.user_id,
       uid: row.user_id,
       email: row.email,
       displayName: row.display_name,
-      role: row.role,
+      role: row.role as any,
       joinedAt: row.joined_at,
+      customPermissions: customPerms,
     };
   }
 
@@ -70,7 +77,7 @@ async function getProjectsMembersBatchMap(projectIds: string[]): Promise<
 
   const placeholders = projectIds.map(() => '?').join(',');
   const rows = await dbAll<DBMemberRow & { project_id: string }>(
-    `SELECT pm.project_id, pm.user_id, pm.role, pm.joined_at, u.email, u.display_name
+    `SELECT pm.project_id, pm.user_id, pm.role, pm.joined_at, pm.custom_permissions, u.email, u.display_name
      FROM project_members pm
      INNER JOIN users u ON pm.user_id = u.id
      WHERE pm.project_id IN (${placeholders})`,
@@ -87,13 +94,18 @@ async function getProjectsMembersBatchMap(projectIds: string[]): Promise<
       result[row.project_id] = { memberIds: [], memberDetails: {} };
     }
     result[row.project_id].memberIds.push(row.user_id);
+    const customPerms = row.custom_permissions
+      ? parseCustomPermissions(row.custom_permissions)
+      : null;
+
     result[row.project_id].memberDetails[row.user_id] = {
       id: row.user_id,
       uid: row.user_id,
       email: row.email,
       displayName: row.display_name,
-      role: row.role,
+      role: row.role as any,
       joinedAt: row.joined_at,
+      customPermissions: customPerms,
     };
   }
 
@@ -376,9 +388,14 @@ export const addMember = async (
 
     const assignedRole = role === 'owner' ? 'maintainer' : role; // Only original creator is workspace owner
     const now = new Date().toISOString();
+    const serializedPerms =
+      assignedRole === 'custom' && req.body.customPermissions
+        ? serializeCustomPermissions(req.body.customPermissions)
+        : null;
+
     await dbRun(
-      `INSERT INTO project_members (project_id, user_id, role, joined_at) VALUES (?, ?, ?, ?)`,
-      [id, targetUser.id, assignedRole, now]
+      `INSERT INTO project_members (project_id, user_id, role, joined_at, custom_permissions) VALUES (?, ?, ?, ?, ?)`,
+      [id, targetUser.id, assignedRole, now, serializedPerms]
     );
 
     const { memberIds, memberDetails } = await getProjectMembersMap(id);
@@ -442,9 +459,14 @@ export const updateMemberRole = async (
       throw new AppError(404, 'Member not found in this project.', 'NOT_A_MEMBER');
     }
 
+    const serializedPerms =
+      role === 'custom' && req.body.customPermissions
+        ? serializeCustomPermissions(req.body.customPermissions)
+        : null;
+
     await dbRun(
-      `UPDATE project_members SET role = ? WHERE project_id = ? AND user_id = ?`,
-      [role, id, memberId]
+      `UPDATE project_members SET role = ?, custom_permissions = ? WHERE project_id = ? AND user_id = ?`,
+      [role, serializedPerms, id, memberId]
     );
 
     const { memberIds, memberDetails } = await getProjectMembersMap(id);

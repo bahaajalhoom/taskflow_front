@@ -10,6 +10,11 @@ import {
   MeetingSession,
   MeetingParticipant,
   MeetingSignal,
+  AdminOverviewData,
+  AdminUserRecord,
+  AdminProjectRecord,
+  AdminTaskRecord,
+  CustomPermissions,
 } from '@/types';
 import { apiRequest, getApiBaseUrl } from '@/lib/api';
 
@@ -212,11 +217,12 @@ export const DataService = {
     projectId: string,
     memberEmail: string,
     _userId: string,
-    role: string = 'member'
+    role: string = 'member',
+    customPermissions?: CustomPermissions | null
   ): Promise<Project> {
     await apiRequest<any>(`/projects/${projectId}/members`, {
       method: 'POST',
-      body: JSON.stringify({ email: memberEmail, role }),
+      body: JSON.stringify({ email: memberEmail, role, customPermissions }),
     });
 
     const updated = await this.getProjectById(projectId, _userId);
@@ -229,7 +235,8 @@ export const DataService = {
     targetMemberId: string,
     role: string,
     _userId: string,
-    memberEmail?: string
+    memberEmail?: string,
+    customPermissions?: CustomPermissions | null
   ): Promise<Project> {
     // Persist to local storage immediately so it reflects across the app even on legacy backends
     saveStoredMemberRole(projectId, targetMemberId, role);
@@ -237,7 +244,7 @@ export const DataService = {
     try {
       await apiRequest<any>(`/projects/${projectId}/members/${targetMemberId}`, {
         method: 'PATCH',
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role, customPermissions }),
       });
     } catch (err: any) {
       const isMissingEndpoint =
@@ -630,5 +637,50 @@ export const DataService = {
     } catch {
       return [];
     }
+  },
+
+  // ==========================================================================
+  // Global Admin Operations
+  // ==========================================================================
+  async getAdminOverview(): Promise<AdminOverviewData> {
+    return apiRequest<AdminOverviewData>('/admin/overview');
+  },
+
+  async getAdminUsers(): Promise<{ count: number; users: AdminUserRecord[] }> {
+    return apiRequest<{ count: number; users: AdminUserRecord[] }>('/admin/users');
+  },
+
+  async adminResetUserPassword(
+    userId: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    return apiRequest<{ success: boolean; message: string }>(
+      `/admin/users/${userId}/password`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ newPassword }),
+      }
+    );
+  },
+
+  async adminUpdateUserRole(
+    userId: string,
+    role: string
+  ): Promise<{ success: boolean; message: string; newRole: string }> {
+    return apiRequest<{ success: boolean; message: string; newRole: string }>(
+      `/admin/users/${userId}/role`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }
+    );
+  },
+
+  async getAdminProjects(): Promise<{ count: number; projects: AdminProjectRecord[] }> {
+    return apiRequest<{ count: number; projects: AdminProjectRecord[] }>('/admin/projects');
+  },
+
+  async getAdminTasks(): Promise<{ count: number; tasks: AdminTaskRecord[] }> {
+    return apiRequest<{ count: number; tasks: AdminTaskRecord[] }>('/admin/tasks');
   },
 };

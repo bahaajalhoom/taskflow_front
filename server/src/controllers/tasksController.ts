@@ -4,6 +4,7 @@ import { AuthenticatedRequest, Task } from '../types/index.js';
 import { dbAll, dbGet, dbRun } from '../config/database.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { createTaskSchema, updateTaskSchema } from '../validators/schemas.js';
+import { canPerformAction } from '../lib/permissions.js';
 
 interface DBTaskRow {
   id: string;
@@ -108,8 +109,8 @@ export const createTask = async (
       throw new AppError(404, 'Project not found.', 'NOT_FOUND');
     }
 
-    const membership = await dbGet<{ user_id: string; role: string }>(
-      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
+    const membership = await dbGet<{ user_id: string; role: string; custom_permissions?: string | null }>(
+      `SELECT user_id, role, custom_permissions FROM project_members WHERE project_id = ? AND user_id = ?`,
       [projectId, userId]
     );
 
@@ -117,8 +118,8 @@ export const createTask = async (
       throw new AppError(403, 'Access denied: You are not a member of this project.', 'FORBIDDEN');
     }
 
-    if (membership?.role === 'viewer') {
-      throw new AppError(403, 'Viewers have read-only access and cannot create tasks.', 'FORBIDDEN');
+    if (membership && !canPerformAction(membership.role, membership.custom_permissions, 'createTask')) {
+      throw new AppError(403, 'Your role or custom permissions do not permit creating tasks in this project.', 'FORBIDDEN');
     }
 
     let assigneeId: string | null = null;
@@ -216,13 +217,13 @@ export const updateTask = async (
       throw new AppError(404, 'Task not found in this project.', 'NOT_FOUND');
     }
 
-    const membership = await dbGet<{ user_id: string; role: string }>(
-      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
+    const membership = await dbGet<{ user_id: string; role: string; custom_permissions?: string | null }>(
+      `SELECT user_id, role, custom_permissions FROM project_members WHERE project_id = ? AND user_id = ?`,
       [projectId, userId]
     );
 
-    if (membership?.role === 'viewer') {
-      throw new AppError(403, 'Viewers have read-only access and cannot edit tasks.', 'FORBIDDEN');
+    if (membership && !canPerformAction(membership.role, membership.custom_permissions, 'editTask')) {
+      throw new AppError(403, 'Your role or custom permissions do not permit editing tasks in this project.', 'FORBIDDEN');
     }
 
     const isOwner = project.owner_id === userId || membership?.role === 'owner';
@@ -348,13 +349,13 @@ export const deleteTask = async (
       throw new AppError(404, 'Task not found in this project.', 'NOT_FOUND');
     }
 
-    const membership = await dbGet<{ user_id: string; role: string }>(
-      `SELECT user_id, role FROM project_members WHERE project_id = ? AND user_id = ?`,
+    const membership = await dbGet<{ user_id: string; role: string; custom_permissions?: string | null }>(
+      `SELECT user_id, role, custom_permissions FROM project_members WHERE project_id = ? AND user_id = ?`,
       [projectId, userId]
     );
 
-    if (membership?.role === 'viewer') {
-      throw new AppError(403, 'Viewers have read-only access and cannot delete tasks.', 'FORBIDDEN');
+    if (membership && !canPerformAction(membership.role, membership.custom_permissions, 'deleteTask')) {
+      throw new AppError(403, 'Your role or custom permissions do not permit deleting tasks in this project.', 'FORBIDDEN');
     }
 
     const isOwner = project.owner_id === userId || membership?.role === 'owner';

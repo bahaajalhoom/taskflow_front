@@ -1,6 +1,14 @@
 export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export type TaskPriority = 'low' | 'medium' | 'high';
-export type UserRole = 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer';
+export type UserRole = 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | 'custom';
+
+export interface CustomPermissions {
+  canCreateTasks: boolean;
+  canEditTasks: boolean;
+  canDeleteTasks: boolean;
+  canViewTasks: boolean;
+  canManageMembers: boolean;
+}
 
 export interface UserProfile {
   id?: string;
@@ -16,9 +24,83 @@ export interface ProjectMemberDetail {
   uid: string;
   email: string;
   displayName: string;
-  role: 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | string;
+  role: 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | 'custom' | string;
   domainTitle?: string;
   joinedAt?: string;
+  customPermissions?: CustomPermissions | null;
+}
+
+export interface AdminOverviewData {
+  totalUsers: number;
+  totalProjects: number;
+  totalTasks: number;
+  tasksByStatus: {
+    todo: number;
+    in_progress: number;
+    done: number;
+  };
+  tasksByPriority: {
+    low: number;
+    medium: number;
+    high: number;
+    urgent: number;
+  };
+  recentUsers: Array<{
+    id: string;
+    email: string;
+    displayName: string;
+    role: string;
+    createdAt: string;
+  }>;
+  timestamp: string;
+}
+
+export interface AdminUserRecord {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  createdAt: string;
+  projectsCount: number;
+  tasksCount: number;
+  passwordSecurity: {
+    algorithm: string;
+    status: string;
+    hashPreview: string;
+  };
+}
+
+export interface AdminProjectRecord {
+  id: string;
+  name: string;
+  description: string;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail: string;
+  createdAt: string;
+  updatedAt: string;
+  membersCount: number;
+  tasksCount: number;
+  doneTasksCount: number;
+  completionRate: number;
+}
+
+export interface AdminTaskRecord {
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  assigneeEmail: string | null;
+  createdBy: string;
+  creatorName: string;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Project {

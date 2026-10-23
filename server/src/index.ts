@@ -8,6 +8,7 @@ import projectsRouter from './routes/projects.js';
 import tasksRouter from './routes/tasks.js';
 import metricsRouter from './routes/metrics.js';
 import settingsRouter from './routes/settings.js';
+import adminRouter from './routes/admin.js';
 import { initDatabase } from './config/database.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import {
@@ -141,6 +142,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/projects/:id/tasks', tasksRouter);
 app.use('/api/metrics', metricsRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/admin', adminRouter);
 
 // 8. 404 Catch-All Handler
 app.use((req, res) => {
