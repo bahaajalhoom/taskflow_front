@@ -5,7 +5,7 @@ import {
   getDirectionalSlideX,
   getSectionStaggerDelay,
   calculateSlamImpactKeyframe,
-  calculateLateralCollisionKeyframe,
+  calculateSequentialGlideKeyframe,
 } from '../landing-motion';
 
 test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
@@ -55,26 +55,25 @@ test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
     assert.strictEqual(atSettled.rotateDeg, 0);
   });
 
-  await t.test('Lateral collision and horizontal shudder physics: no squish, pure official horizontal tremor', () => {
-    // Before impact (flying inward from extreme offscreen side)
-    const beforeImpact = calculateLateralCollisionKeyframe(0.2, 'start');
-    assert.ok(Math.abs(beforeImpact.translateX) > 100, 'Starts from completely outside the screen viewport');
-    assert.strictEqual(beforeImpact.translateY, 0, 'Zero vertical shift');
-    assert.strictEqual(beforeImpact.scaleX, 1, 'Zero squishy distortion (Scale stays 1)');
-    assert.strictEqual(beforeImpact.scaleY, 1, 'Zero squishy distortion (Scale stays 1)');
+  await t.test('Sequential calm glide with subtle micro-settle: zero squish, smooth graceful progression', () => {
+    // Left side begins gliding from negative offset
+    const leftStart = calculateSequentialGlideKeyframe(0.1, 'left');
+    assert.ok(leftStart.translateX < 0);
+    assert.strictEqual(leftStart.translateY, 0);
+    assert.strictEqual(leftStart.scaleX, 1, 'Zero squish scale');
+    assert.strictEqual(leftStart.scaleY, 1, 'Zero squish scale');
 
-    // Collision Moment (progress = 0.44): hits collision point
-    const atImpact = calculateLateralCollisionKeyframe(0.44, 'start');
-    assert.strictEqual(atImpact.translateX, 0);
-    assert.strictEqual(atImpact.scaleX, 1, 'Rigid official structure');
+    // Right side begins gliding from positive offset
+    const rightStart = calculateSequentialGlideKeyframe(0.1, 'right');
+    assert.ok(rightStart.translateX > 0);
 
-    // Rebound phase (progress = 0.57): rebounds outward horizontally
-    const atRebound = calculateLateralCollisionKeyframe(0.57, 'start');
-    assert.ok(atRebound.translateX < 0, 'Rebounds outward back towards its side');
+    // Micro-settle phase (progress = 0.82)
+    const leftSettle = calculateSequentialGlideKeyframe(0.82, 'left');
+    assert.ok(Math.abs(leftSettle.translateX) <= 5, 'Dignified micro-settle under 5px');
 
-    // Settle phase (progress = 1.0): perfectly centered at rest
-    const atSettled = calculateLateralCollisionKeyframe(1.0, 'start');
-    assert.strictEqual(atSettled.translateX, 0);
-    assert.strictEqual(atSettled.translateY, 0);
+    // Fully settled at rest
+    const fullySettled = calculateSequentialGlideKeyframe(1.0, 'left');
+    assert.strictEqual(fullySettled.translateX, 0);
+    assert.strictEqual(fullySettled.translateY, 0);
   });
 });

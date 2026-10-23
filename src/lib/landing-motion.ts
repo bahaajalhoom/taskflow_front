@@ -16,11 +16,12 @@ export const LANDING_MOTION = {
     delayMs: 180,
     offsetPx: 48,
   },
-  lateralCollision: {
-    durationMs: 950,
-    offscreenOffsetPx: 1200,
-    reboundPx: 26,
-    shudderPx: 14,
+  sequentialGlide: {
+    durationMs: 750,
+    leftDelayMs: 60,
+    rightDelayMs: 440,
+    initialOffsetPx: 140,
+    reboundPx: 6,
   },
   sectionStagger: {
     baseDelayMs: 160,
@@ -38,7 +39,7 @@ export interface SlamKeyframeState {
   rotateDeg: number;
 }
 
-export interface LateralCollisionState {
+export interface SequentialGlideState {
   translateX: number;
   translateY: number;
   scaleX: number;
@@ -115,15 +116,17 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
 }
 
 /**
- * محاكي فيزياء التصادم الأفقي والاهتزاز الرسمي بدون سكويش (Lateral Collision & Horizontal Shudder)
- * يضمن ثبات المقاس (scale = 1) تماماً وتركيز الاهتزاز على المحور الأفقي X
+ * محاكي فيزياء الانزلاق الهادئ المتتابع مع ارتجاج استقرار رزين رسمي (Sequential Calm Glide & Settle)
+ * - يدخل كل عنصر بهدوء من جانبه (أولاً اليسار ثم اليمين بتتابع هادئ)
+ * - بدون اهتزاز عشوائي أو سكويش (Scale = 1 دائماً)
+ * - ارتجاج استقرار نهائي خفيف جداً (Micro-settle 4-6px)
  */
-export function calculateLateralCollisionKeyframe(
+export function calculateSequentialGlideKeyframe(
   progress: number,
-  side: 'start' | 'end',
-  initialOffset = 1200
-): LateralCollisionState {
-  const dir = side === 'start' ? -1 : 1; // start يأتي من أقصى الخارج سالباً نحو الصفر، end يأتي موجباً نحو الصفر
+  side: 'left' | 'right',
+  initialOffset = 140
+): SequentialGlideState {
+  const dir = side === 'left' ? -1 : 1;
 
   if (progress <= 0) {
     return { translateX: dir * initialOffset, translateY: 0, scaleX: 1, scaleY: 1 };
@@ -132,27 +135,20 @@ export function calculateLateralCollisionKeyframe(
     return { translateX: 0, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 1. مرحلة الانطلاق الصاروخي من خارج الشاشة والاصطدام في المنتصف (0 -> 0.44)
-  if (progress <= 0.44) {
-    const t = progress / 0.44;
-    const currentX = dir * initialOffset * (1 - t * t);
+  // 1. مرحلة الانزلاق الهادئ الانسيابي (0 -> 0.72)
+  if (progress <= 0.72) {
+    const t = progress / 0.72;
+    // انسيابية تباطؤ هادئة رسمية (Cubic Ease Out)
+    const eased = 1 - Math.pow(1 - t, 3);
+    const currentX = dir * initialOffset * (1 - eased);
     const rounded = Math.round(currentX);
     return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 2. مرحلة الارتداد الأفقي القوي المباشر بعد التصادم (0.44 -> 0.7)
-  // يرتد العنصر إلى جهته الأصلية بمسافة 24px
-  if (progress <= 0.7) {
-    const t = (progress - 0.44) / 0.26;
-    const reboundX = dir * 24 * Math.sin(t * Math.PI);
-    const rounded = Math.round(reboundX);
-    return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
-  }
-
-  // 3. مرحلة الاهتزاز الأفقي الترددي الرسمي السريع المتلاشي (0.7 -> 1.0)
-  // تذبذب أفقي نقي: +14px, -8px, +4px, 0px
-  const t = (progress - 0.7) / 0.3;
-  const shudderX = dir * 14 * Math.sin(t * Math.PI * 2) * (1 - t);
-  const rounded = Math.round(shudderX);
+  // 2. ارتجاج الاستقرار الرزين الخفيف (0.72 -> 1.0)
+  // ارتداد خفيف جداً بمقدار 5px ثم الاستقرار الثابت دون اهتزاز هبل
+  const t = (progress - 0.72) / 0.28;
+  const microSettleX = dir * -5 * Math.sin(t * Math.PI) * (1 - t);
+  const rounded = Math.round(microSettleX);
   return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
 }

@@ -509,35 +509,24 @@ html[dir='rtl'] .animate-landing-hero-end {
 }
 
 /* ============================================================================
-   Lateral High-Speed Offscreen Collision & Tremor Physics ("من برا الشاشة يخبطو بقوة ويرتدو")
+   Sequential Calm Glide with Micro-Settle Physics ("بشويش من الشمال بعدين اليمين مع ارتجاج استقرار رزين")
    ============================================================================ */
 
-/* 1. الجانب الأيسر في LTR / الجانب الأيمن في RTL (Start Side):
-   ينطلق من خارج الشاشة تماماً (-100vw) بسرعة فائقة، يصطدم في المنتصف بقوة عند 46%،
-   يرتد بمسافة ملحوظة (-24px)، ثم يهتز أفقياً بتردد زلزالي متلاشٍ (+16px, -10px, +5px, 0) */
-@keyframes lateral-collision-start-ltr {
+/* 1. الجانب الأيسر (الشمال) يدخل أولاً بشويش بنعومة كاملة ويستقر بارتجاج رزين دقيق */
+@keyframes sequential-glide-left {
   0% {
     opacity: 0;
-    transform: translateX(-100vw);
+    transform: translateX(-120px);
   }
-  44% {
+  75% {
     opacity: 1;
     transform: translateX(0);
   }
-  56% {
-    transform: translateX(-24px);
+  86% {
+    transform: translateX(5px);
   }
-  68% {
-    transform: translateX(14px);
-  }
-  78% {
-    transform: translateX(-8px);
-  }
-  88% {
-    transform: translateX(4px);
-  }
-  95% {
-    transform: translateX(-1px);
+  94% {
+    transform: translateX(-2px);
   }
   100% {
     opacity: 1;
@@ -545,29 +534,21 @@ html[dir='rtl'] .animate-landing-hero-end {
   }
 }
 
-@keyframes lateral-collision-start-rtl {
+/* 2. الجانب الأيمن (اليمين) يدخل ثانياً بعد وصول الجانب الأيسر بشويش بنعومة كاملة */
+@keyframes sequential-glide-right {
   0% {
     opacity: 0;
-    transform: translateX(100vw);
+    transform: translateX(120px);
   }
-  44% {
+  75% {
     opacity: 1;
     transform: translateX(0);
   }
-  56% {
-    transform: translateX(24px);
+  86% {
+    transform: translateX(-5px);
   }
-  68% {
-    transform: translateX(-14px);
-  }
-  78% {
-    transform: translateX(8px);
-  }
-  88% {
-    transform: translateX(-4px);
-  }
-  95% {
-    transform: translateX(1px);
+  94% {
+    transform: translateX(2px);
   }
   100% {
     opacity: 1;
@@ -575,82 +556,12 @@ html[dir='rtl'] .animate-landing-hero-end {
   }
 }
 
-/* 2. الجانب الأيمن في LTR / الجانب الأيسر في RTL (End Side):
-   ينطلق من خارج الشاشة المقابل تماماً (+100vw) ويصطدم بالجانب الأول في نفس اللحظة ثم يرتد ويهتز أفقياً */
-@keyframes lateral-collision-end-ltr {
-  0% {
-    opacity: 0;
-    transform: translateX(100vw);
-  }
-  44% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  56% {
-    transform: translateX(24px);
-  }
-  68% {
-    transform: translateX(-14px);
-  }
-  78% {
-    transform: translateX(8px);
-  }
-  88% {
-    transform: translateX(-4px);
-  }
-  95% {
-    transform: translateX(1px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.animate-sequential-left {
+  animation: sequential-glide-left 750ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
 }
 
-@keyframes lateral-collision-end-rtl {
-  0% {
-    opacity: 0;
-    transform: translateX(-100vw);
-  }
-  44% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  56% {
-    transform: translateX(-24px);
-  }
-  68% {
-    transform: translateX(14px);
-  }
-  78% {
-    transform: translateX(-8px);
-  }
-  88% {
-    transform: translateX(4px);
-  }
-  95% {
-    transform: translateX(-1px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-lateral-collision-start {
-  animation: lateral-collision-start-ltr 950ms cubic-bezier(0.12, 0.95, 0.15, 1) both;
-}
-
-html[dir='rtl'] .animate-lateral-collision-start {
-  animation-name: lateral-collision-start-rtl;
-}
-
-.animate-lateral-collision-end {
-  animation: lateral-collision-end-ltr 950ms cubic-bezier(0.12, 0.95, 0.15, 1) both;
-}
-
-html[dir='rtl'] .animate-lateral-collision-end {
-  animation-name: lateral-collision-end-rtl;
+.animate-sequential-right {
+  animation: sequential-glide-right 750ms cubic-bezier(0.16, 1, 0.3, 1) 480ms both;
 }
 
 @keyframes intro-text {
@@ -673,8 +584,8 @@ html[dir='rtl'] .animate-lateral-collision-end {
   .animate-landing-hero-start,
   .animate-landing-hero-end,
   .animate-landing-from-bottom,
-  .animate-lateral-collision-start,
-  .animate-lateral-collision-end,
+  .animate-sequential-left,
+  .animate-sequential-right,
   .animate-tile-drop,
   .animate-intro-text {
     animation: none !important;

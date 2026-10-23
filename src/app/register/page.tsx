@@ -39,7 +39,7 @@ const AUTH_STYLES = {
   formContainer:
     'mx-auto w-full max-w-sm sm:max-w-md my-auto py-8 lg:py-10 space-y-6',
   formCard:
-    'sm:bg-white sm:dark:bg-[#141210] sm:border sm:border-[#DAD7CF] sm:dark:border-[#2A2621] sm:rounded-2xl sm:p-7 md:p-8 sm:shadow-tactile-card sm:dark:shadow-tactile-card-dark transition-all animate-lateral-collision-end',
+    'sm:bg-white sm:dark:bg-[#141210] sm:border sm:border-[#DAD7CF] sm:dark:border-[#2A2621] sm:rounded-2xl sm:p-7 md:p-8 sm:shadow-tactile-card sm:dark:shadow-tactile-card-dark transition-all animate-sequential-right',
   pageTitle:
     'font-sans text-2xl sm:text-3xl font-bold tracking-tight text-[#141311] dark:text-[#F2EDE4]',
   pageSubtitle: 'mt-1.5 text-xs sm:text-sm text-[#635B4E] dark:text-[#B8AFA0] leading-relaxed',
