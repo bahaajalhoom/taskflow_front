@@ -1243,47 +1243,31 @@ export default function ProjectDetailsPage() {
               options={[
                 {
                   value: 'kanban',
-                  label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
-                      <AppstoreOutlined className="text-xs sm:text-sm shrink-0" />
-                      <span>{t('kanbanBoard')}</span>
-                    </span>
-                  ),
+                  icon: <AppstoreOutlined className="text-sm shrink-0" />,
+                  label: <span>{t('kanbanBoard')}</span>,
                 },
                 {
                   value: 'table',
-                  label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
-                      <UnorderedListOutlined className="text-xs sm:text-sm shrink-0" />
-                      <span>{t('tableView')}</span>
-                    </span>
-                  ),
+                  icon: <UnorderedListOutlined className="text-sm shrink-0" />,
+                  label: <span>{t('tableView')}</span>,
                 },
                 {
                   value: 'timeline',
-                  label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
-                      <CalendarOutlined className="text-xs sm:text-sm shrink-0" />
-                      <span>{isArabic ? 'المسار الزمني' : 'Timeline'}</span>
-                    </span>
-                  ),
+                  icon: <CalendarOutlined className="text-sm shrink-0" />,
+                  label: <span>{isArabic ? 'المسار الزمني' : 'Timeline'}</span>,
                 },
                 {
                   value: 'chat',
-                  label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
-                      <MessageOutlined className="text-xs sm:text-sm shrink-0" />
-                      <span>{isArabic ? 'شات الفريق' : 'Team Chat'}</span>
-                    </span>
-                  ),
+                  icon: <MessageOutlined className="text-sm shrink-0" />,
+                  label: <span>{isArabic ? 'شات الفريق' : 'Team Chat'}</span>,
                 },
                 {
                   value: 'meeting',
+                  icon: <VideoCameraOutlined className="text-sm shrink-0" />,
                   label: (
-                    <span className="font-semibold text-xs sm:text-sm px-1.5 flex items-center gap-1.5 whitespace-nowrap">
-                      <VideoCameraOutlined className="text-xs sm:text-sm shrink-0" />
+                    <span className="inline-flex items-center gap-1.5">
                       <span>{isArabic ? 'غرفة الاجتماع' : 'Meeting'}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ms-0.5 shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                     </span>
                   ),
                 },
