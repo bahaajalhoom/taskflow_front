@@ -316,6 +316,50 @@ html.dark .view-tab-active {
   border-radius: 6px !important;
 }
 
+/* Ant Design Segmented precision vertical centering */
+.ant-segmented {
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.ant-segmented .ant-segmented-group {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+.ant-segmented .ant-segmented-item {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ant-segmented .ant-segmented-item-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 100% !important;
+  height: 100% !important;
+  line-height: 1 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.ant-segmented .ant-segmented-item-label > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  line-height: 1 !important;
+}
+
+.ant-segmented .anticon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  line-height: 0 !important;
+}
+
 /* Page entrance motion */
 @keyframes pageFadeSlide {
   0% {
