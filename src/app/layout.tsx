@@ -8,8 +8,6 @@ import AntdProvider from '@/components/providers/AntdProvider';
 import AppShell from '@/components/layout/AppShell';
 import TopProgressBar from '@/components/ui/TopProgressBar';
 
-export const dynamic = 'force-dynamic';
-
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://taskflow.apps.taqat.academy';
 
 export const metadata: Metadata = {
@@ -48,14 +46,21 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'ar_SA',
     alternateLocale: ['en_US'],
-    url: '/',
     siteName: 'TaskFlow',
     title: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     description:
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
     images: [
       {
-        url: '/og-image.png',
+        url: `${siteUrl}/og-image.jpg`,
+        secureUrl: `${siteUrl}/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'TaskFlow - Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
+        type: 'image/jpeg',
+      },
+      {
+        url: `${siteUrl}/og-image.png`,
         secureUrl: `${siteUrl}/og-image.png`,
         width: 1200,
         height: 630,
@@ -69,7 +74,7 @@ export const metadata: Metadata = {
     title: 'TaskFlow | Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
     description:
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
-    images: [`${siteUrl}/og-image.png`],
+    images: [`${siteUrl}/og-image.jpg`],
   },
 };
 
