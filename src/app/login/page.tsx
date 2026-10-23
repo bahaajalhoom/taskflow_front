@@ -148,8 +148,8 @@ export default function LoginPage() {
 
   return (
     <div className={AUTH_STYLES.root} dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* 1. Left Desktop Brand Panel: Physics Tile Drop & Momentum Morph */}
-      <AuthBrandPanel />
+      {/* 1. Left Desktop Brand Panel: Kinetic Logo Assembly & Resonance */}
+      <AuthBrandPanel mode="login" />
 
       {/* 2. Right Side: Navigation, Mobile Hero, and Form */}
       <main className={AUTH_STYLES.mainPanel}>
@@ -204,8 +204,8 @@ export default function LoginPage() {
 
         {/* Form Container */}
         <div className={AUTH_STYLES.formContainer}>
-          {/* Mobile Hero Card with Compact Band Animation (visible < lg) */}
-          <AuthMobileHeroCard />
+          {/* Mobile Hero Card with Brand Resonance (visible < lg) */}
+          <AuthMobileHeroCard mode="login" />
 
           <div className={AUTH_STYLES.formCard}>
             {/* Title & Subtitle */}
