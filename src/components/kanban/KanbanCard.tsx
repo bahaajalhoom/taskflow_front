@@ -75,7 +75,7 @@ export interface KanbanCardProps {
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
   onStatusChange: (task: Task, nextStatus: TaskStatus) => void;
-  onDragStart: (e: React.DragEvent, taskId: string) => void;
+  onDragStart: (e: React.DragEvent, taskId: string, cardElement?: HTMLElement) => void;
   onDragEnd: () => void;
 }
 
@@ -145,6 +145,7 @@ export const KanbanCard = React.memo(function KanbanCard({
   onDragStart,
   onDragEnd,
 }: KanbanCardProps) {
+  const cardRef = React.useRef<HTMLDivElement | null>(null);
   const { t, formatTaskPriority, formatDateLocalized, isRTL } = useLanguage();
   const isOverdue = isTaskOverdue(task.dueDate, task.status);
   const { tag, cleanTitle } = parseTaskTag(task.title);
@@ -162,16 +163,26 @@ export const KanbanCard = React.memo(function KanbanCard({
     onInspect(task.id);
   }
 
+  function handleDragStartInternal(e: React.DragEvent) {
+    onDragStart(e, task.id, cardRef.current || undefined);
+  }
+
   return (
     <div
+      ref={cardRef}
       role="button"
       tabIndex={0}
       aria-label={`${cleanTitle}. ${formatTaskPriority(task.priority)}. ${task.assigneeName ? task.assigneeName : t('unassigned')}`}
       draggable={canEdit}
-      onDragStart={(e) => onDragStart(e, task.id)}
+      onDragStart={handleDragStartInternal}
       onDragEnd={onDragEnd}
       onClick={handleCardClick}
       onKeyDown={handleKeyDown}
+      style={{
+        transition: isDragging
+          ? 'opacity 140ms ease-out, transform 140ms ease-out'
+          : 'transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease-out, border-color 160ms ease-out',
+      }}
       className={`${CARD_STYLES.cardBase} ${
         isDragging ? CARD_STYLES.cardDragging : CARD_STYLES.cardIdle
       } ${task.status === 'done' ? 'opacity-85' : ''}`}

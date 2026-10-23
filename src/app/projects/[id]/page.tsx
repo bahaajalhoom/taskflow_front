@@ -58,6 +58,8 @@ import { DataService } from '@/services/dataStore';
 import { Project, Task, TaskStatus, TaskPriority } from '@/types';
 import { isTaskOverdue, parseTaskTag } from '@/lib/utils';
 import { KanbanCard } from '@/components/kanban/KanbanCard';
+import { PhysicsDragOverlay } from '@/components/kanban/PhysicsDragOverlay';
+import { useCardPhysicsDrag } from '@/hooks/useCardPhysicsDrag';
 import ProjectDetailSkeleton from '@/components/ui/ProjectDetailSkeleton';
 import { PrioritySignalBadge, PrioritySignalIcon } from '@/components/ui/PrioritySignalBadge';
 
@@ -359,7 +361,19 @@ function KanbanColumnShell({
             </span>
           </div>
         ) : (
-          tasks.map((task) => renderTaskCard(task))
+          <>
+            {tasks.map((task) => renderTaskCard(task))}
+            {isDragOver && (
+              <div
+                className="h-24 rounded-xl border-2 border-dashed border-[#7A5818]/60 dark:border-[#D4B26E]/60 bg-[#D4B26E]/10 flex items-center justify-center transition-all animate-pulse"
+                aria-hidden="true"
+              >
+                <span className="text-xs font-bold text-[#7A5818] dark:text-[#D4B26E] uppercase tracking-wider font-mono">
+                  {dropMessage}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -412,7 +426,8 @@ export default function ProjectDetailsPage() {
   const [taskSubmitting, setTaskSubmitting] = useState(false);
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
 
-  // --- Drag and Drop State ---
+  // --- Drag and Drop State & Physics Engine ---
+  const physicsDrag = useCardPhysicsDrag();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<TaskStatus | null>(null);
 
@@ -738,8 +753,9 @@ export default function ProjectDetailsPage() {
 
   const handleDrop = (e: React.DragEvent, targetStatus: TaskStatus) => {
     e.preventDefault();
-    const taskId = e.dataTransfer.getData('text/plain');
+    const taskId = e.dataTransfer.getData('text/plain') || physicsDrag.draggedTask?.id;
     if (taskId) handleQuickStatusChange(taskId, targetStatus);
+    physicsDrag.endPhysicsDrag();
     setDraggedTaskId(null);
     setDragOverCol(null);
   };
@@ -992,7 +1008,7 @@ export default function ProjectDetailsPage() {
   const renderKanbanCardItem = (task: Task) => {
     const canEdit = !isViewer && (isOwner || isMaintainer || task.createdBy === user?.uid || task.assigneeId === user?.uid);
     const canDelete = !isViewer && (isOwner || isMaintainer || task.createdBy === user?.uid);
-    const isDragging = draggedTaskId === task.id;
+    const isDragging = draggedTaskId === task.id || physicsDrag.draggedTask?.id === task.id;
 
     return (
       <KanbanCard
@@ -1005,11 +1021,15 @@ export default function ProjectDetailsPage() {
         onEdit={openEditTaskModal}
         onDelete={handleDeleteTask}
         onStatusChange={(t, status) => handleQuickStatusChange(t.id, status)}
-        onDragStart={(e, id) => {
+        onDragStart={(e, id, cardEl) => {
           e.dataTransfer.setData('text/plain', id);
           setDraggedTaskId(id);
+          if (cardEl) {
+            physicsDrag.startPhysicsDrag(e, task, cardEl);
+          }
         }}
         onDragEnd={() => {
+          physicsDrag.endPhysicsDrag();
           setDraggedTaskId(null);
           setDragOverCol(null);
         }}
@@ -1437,6 +1457,14 @@ export default function ProjectDetailsPage() {
       {/* Main View: Kanban Board vs Table */}
       {viewMode === 'kanban' ? (
         <div>
+          {/* مجسم الكرت الفيزيائي العائم الذي يتحرك ويميل ديناميكياً مع حركة المؤشر والسرعة */}
+          <PhysicsDragOverlay
+            task={physicsDrag.draggedTask}
+            isVisible={physicsDrag.isPhysicsDragging}
+            containerRef={physicsDrag.overlayRef}
+            dimensions={physicsDrag.cardDimensions}
+          />
+
           {/* Mobile Column Segmented Tab Bar */}
           <div className="md:hidden mb-4">
             <Segmented

@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "./server/node_modules/.bin/tsx --test src/lib/__tests__/*.test.ts"
   },
   "dependencies": {
     "@ant-design/icons": "^5.4.0",
