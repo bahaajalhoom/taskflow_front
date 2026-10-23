@@ -32,6 +32,13 @@ export interface SlamKeyframeState {
   rotateDeg: number;
 }
 
+export interface LateralCollisionState {
+  translateX: number;
+  translateY: number;
+  scaleX: number;
+  scaleY: number;
+}
+
 // ============================================================================
 // 2. HELPER FUNCTIONS
 // ============================================================================
@@ -77,7 +84,6 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
   // 1. مرحلة الهبوط السريع والاصطدام (0 -> 0.5)
   if (progress <= 0.5) {
     const t = progress / 0.5;
-    // عند الاصطدام المباشر (t = 1 أي progress = 0.5):
     if (t === 1) {
       return { translateY: 0, scaleX: 1.08, scaleY: 0.92, rotateDeg: 0 };
     }
@@ -88,7 +94,6 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
   // 2. مرحلة الارتداد والاهتزاز الزلزالي المتلاشي (0.5 -> 0.8)
   if (progress <= 0.8) {
     const t = (progress - 0.5) / 0.3;
-    // ارتداد خفيف لأعلى مع تذبذب زاوية
     const reboundHeight = -14 * Math.sin(t * Math.PI);
     const rotation = 1.8 * Math.sin(t * Math.PI * 2);
     const sx = 1 + 0.04 * Math.sin(t * Math.PI);
@@ -101,4 +106,47 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
   const dampY = -2 * Math.sin(t * Math.PI);
   const dampRot = -0.5 * Math.sin(t * Math.PI);
   return { translateY: dampY, scaleX: 1, scaleY: 1, rotateDeg: dampRot };
+}
+
+/**
+ * محاكي فيزياء التصادم الأفقي والاهتزاز الرسمي بدون سكويش (Lateral Collision & Horizontal Shudder)
+ * يضمن ثبات المقاس (scale = 1) تماماً وتركيز الاهتزاز على المحور الأفقي X
+ */
+export function calculateLateralCollisionKeyframe(
+  progress: number,
+  side: 'start' | 'end',
+  initialOffset = 90
+): LateralCollisionState {
+  const dir = side === 'start' ? -1 : 1; // start يأتي من السالب نحو الصفر، end يأتي من الموجب نحو الصفر
+
+  if (progress <= 0) {
+    return { translateX: dir * initialOffset, translateY: 0, scaleX: 1, scaleY: 1 };
+  }
+  if (progress >= 1) {
+    return { translateX: 0, translateY: 0, scaleX: 1, scaleY: 1 };
+  }
+
+  // 1. مرحلة الانطلاق والاصطدام في المنتصف (0 -> 0.5)
+  if (progress <= 0.5) {
+    const t = progress / 0.5;
+    const currentX = dir * initialOffset * (1 - t * t);
+    const rounded = Math.round(currentX);
+    return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
+  }
+
+  // 2. مرحلة الارتداد الأفقي المباشر بعد التصادم (0.5 -> 0.75)
+  // يرتد العنصر إلى جهته الأصلية بنسبة خفيفة (حوالي 12px)
+  if (progress <= 0.75) {
+    const t = (progress - 0.5) / 0.25;
+    const reboundX = dir * 12 * Math.sin(t * Math.PI);
+    const rounded = Math.round(reboundX);
+    return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
+  }
+
+  // 3. مرحلة الاهتزاز الأفقي الترددي الرسمي السريع (0.75 -> 1.0)
+  // تذبذب أفقي نقي: +5px, -3px, 0px
+  const t = (progress - 0.75) / 0.25;
+  const shudderX = dir * 6 * Math.sin(t * Math.PI * 2) * (1 - t);
+  const rounded = Math.round(shudderX);
+  return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
 }

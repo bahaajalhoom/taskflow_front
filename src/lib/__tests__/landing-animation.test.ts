@@ -5,6 +5,7 @@ import {
   getDirectionalSlideX,
   getSectionStaggerDelay,
   calculateSlamImpactKeyframe,
+  calculateLateralCollisionKeyframe,
 } from '../landing-motion';
 
 test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
@@ -52,5 +53,28 @@ test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
     assert.strictEqual(atSettled.scaleX, 1);
     assert.strictEqual(atSettled.scaleY, 1);
     assert.strictEqual(atSettled.rotateDeg, 0);
+  });
+
+  await t.test('Lateral collision and horizontal shudder physics: no squish, pure official horizontal tremor', () => {
+    // Before impact (flying inward from start)
+    const beforeImpact = calculateLateralCollisionKeyframe(0.2, 'start');
+    assert.ok(beforeImpact.translateX !== 0);
+    assert.strictEqual(beforeImpact.translateY, 0, 'Zero vertical shift');
+    assert.strictEqual(beforeImpact.scaleX, 1, 'Zero squishy distortion (Scale stays 1)');
+    assert.strictEqual(beforeImpact.scaleY, 1, 'Zero squishy distortion (Scale stays 1)');
+
+    // Collision Moment (progress = 0.5): hits collision point
+    const atImpact = calculateLateralCollisionKeyframe(0.5, 'start');
+    assert.strictEqual(atImpact.translateX, 0);
+    assert.strictEqual(atImpact.scaleX, 1, 'Rigid official structure');
+
+    // Rebound phase (progress = 0.65): rebounds outward horizontally
+    const atRebound = calculateLateralCollisionKeyframe(0.65, 'start');
+    assert.ok(atRebound.translateX < 0, 'Rebounds outward back towards its side');
+
+    // Settle phase (progress = 1.0): perfectly centered at rest
+    const atSettled = calculateLateralCollisionKeyframe(1.0, 'start');
+    assert.strictEqual(atSettled.translateX, 0);
+    assert.strictEqual(atSettled.translateY, 0);
   });
 });
