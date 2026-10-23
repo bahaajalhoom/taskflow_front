@@ -52,20 +52,20 @@ export const metadata: Metadata = {
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
     images: [
       {
-        url: `${siteUrl}/og-image.jpg`,
-        secureUrl: `${siteUrl}/og-image.jpg`,
-        width: 1200,
-        height: 630,
-        alt: 'TaskFlow - Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
-        type: 'image/jpeg',
-      },
-      {
         url: `${siteUrl}/og-image.png`,
         secureUrl: `${siteUrl}/og-image.png`,
         width: 1200,
         height: 630,
         alt: 'TaskFlow - Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
         type: 'image/png',
+      },
+      {
+        url: `${siteUrl}/og-image.jpg`,
+        secureUrl: `${siteUrl}/og-image.jpg`,
+        width: 1200,
+        height: 630,
+        alt: 'TaskFlow - Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
+        type: 'image/jpeg',
       },
     ],
   },
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     title: 'TaskFlow | Precision Project & Task Management | منصة إدارة المشاريع والمهام الذكية',
     description:
       'منصة هندسية حديثة لإدارة المشاريع ولوحات كانبان وتتبع سرعة الإنجاز بدون أي تعقيد وبأداء فائق.',
-    images: [`${siteUrl}/og-image.jpg`],
+    images: [`${siteUrl}/og-image.png`],
   },
 };
 
