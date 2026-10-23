@@ -4,6 +4,7 @@ import {
   LANDING_MOTION,
   getDirectionalSlideX,
   getSectionStaggerDelay,
+  calculateSlamImpactKeyframe,
 } from '../landing-motion';
 
 test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
@@ -34,5 +35,22 @@ test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
     assert.ok(delay1 > delay0);
     assert.ok(delay2 > delay1);
     assert.ok(delay3 <= 800, 'Total stagger does not exceed 800ms motion budget');
+  });
+
+  await t.test('Slam and settle physics keyframe progression produces visceral shockwave', () => {
+    const atImpact = calculateSlamImpactKeyframe(0.5);
+    assert.strictEqual(atImpact.translateY, 0);
+    assert.ok(atImpact.scaleX > 1.0, 'Produces squash expansion on impact');
+    assert.ok(atImpact.scaleY < 1.0, 'Produces compression on impact');
+
+    const atRebound = calculateSlamImpactKeyframe(0.68);
+    assert.ok(atRebound.translateY < 0, 'Rebounds upward after slam');
+    assert.notStrictEqual(atRebound.rotateDeg, 0, 'Introduces kinetic tilt oscillation');
+
+    const atSettled = calculateSlamImpactKeyframe(1.0);
+    assert.strictEqual(atSettled.translateY, 0);
+    assert.strictEqual(atSettled.scaleX, 1);
+    assert.strictEqual(atSettled.scaleY, 1);
+    assert.strictEqual(atSettled.rotateDeg, 0);
   });
 });
