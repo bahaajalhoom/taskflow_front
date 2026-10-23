@@ -67,9 +67,11 @@ test('Landing Page Orchestrated Motion Physics - TDD Tests', async (t) => {
     const rightStart = calculateSequentialGlideKeyframe(0.1, 'right');
     assert.ok(rightStart.translateX > 0);
 
-    // Micro-settle phase (progress = 0.82)
-    const leftSettle = calculateSequentialGlideKeyframe(0.82, 'left');
-    assert.ok(Math.abs(leftSettle.translateX) <= 5, 'Dignified micro-settle under 5px');
+    // Monotonic progression towards 0 without backward bounce/vibration
+    const midPoint = calculateSequentialGlideKeyframe(0.5, 'left');
+    const latePoint = calculateSequentialGlideKeyframe(0.8, 'left');
+    assert.ok(midPoint.translateX < latePoint.translateX, 'Moves forward monotonically without backward shudder');
+    assert.ok(latePoint.translateX <= 0);
 
     // Fully settled at rest
     const fullySettled = calculateSequentialGlideKeyframe(1.0, 'left');

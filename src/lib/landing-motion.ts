@@ -116,15 +116,14 @@ export function calculateSlamImpactKeyframe(progress: number): SlamKeyframeState
 }
 
 /**
- * محاكي فيزياء الانزلاق الهادئ المتتابع مع ارتجاج استقرار رزين رسمي (Sequential Calm Glide & Settle)
- * - يدخل كل عنصر بهدوء من جانبه (أولاً اليسار ثم اليمين بتتابع هادئ)
- * - بدون اهتزاز عشوائي أو سكويش (Scale = 1 دائماً)
- * - ارتجاج استقرار نهائي خفيف جداً (Micro-settle 4-6px)
+ * محاكي فيزياء الانزلاق الانسيابي الصافي 100% بدون أي اهتزاز (Pure Smooth Sequential Glide)
+ * - يدخل كل عنصر بهدوء ونعومة تامة من جانبه (أولاً اليسار ثم اليمين بتتابع هادئ)
+ * - بدون أي اهتزاز أو ارتداد أو سكويش نهائياً
  */
 export function calculateSequentialGlideKeyframe(
   progress: number,
   side: 'left' | 'right',
-  initialOffset = 140
+  initialOffset = 100
 ): SequentialGlideState {
   const dir = side === 'left' ? -1 : 1;
 
@@ -135,20 +134,9 @@ export function calculateSequentialGlideKeyframe(
     return { translateX: 0, translateY: 0, scaleX: 1, scaleY: 1 };
   }
 
-  // 1. مرحلة الانزلاق الهادئ الانسيابي (0 -> 0.72)
-  if (progress <= 0.72) {
-    const t = progress / 0.72;
-    // انسيابية تباطؤ هادئة رسمية (Cubic Ease Out)
-    const eased = 1 - Math.pow(1 - t, 3);
-    const currentX = dir * initialOffset * (1 - eased);
-    const rounded = Math.round(currentX);
-    return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
-  }
-
-  // 2. ارتجاج الاستقرار الرزين الخفيف (0.72 -> 1.0)
-  // ارتداد خفيف جداً بمقدار 5px ثم الاستقرار الثابت دون اهتزاز هبل
-  const t = (progress - 0.72) / 0.28;
-  const microSettleX = dir * -5 * Math.sin(t * Math.PI) * (1 - t);
-  const rounded = Math.round(microSettleX);
+  // انسيابية تباطؤ هادئة ناعمة مستمرة من البداية حتى الاستقرار التام دون أي ارتداد
+  const eased = 1 - Math.pow(1 - progress, 3);
+  const currentX = dir * initialOffset * (1 - eased);
+  const rounded = Math.round(currentX);
   return { translateX: Object.is(rounded, -0) ? 0 : rounded, translateY: 0, scaleX: 1, scaleY: 1 };
 }

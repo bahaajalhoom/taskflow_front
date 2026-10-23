@@ -509,24 +509,14 @@ html[dir='rtl'] .animate-landing-hero-end {
 }
 
 /* ============================================================================
-   Sequential Calm Glide with Micro-Settle Physics ("بشويش من الشمال بعدين اليمين مع ارتجاج استقرار رزين")
+   Pure Sequential Smooth Glide Physics ("دخول متتابع انسيابي وناعم 100% بدون أي اهتزاز")
    ============================================================================ */
 
-/* 1. الجانب الأيسر (الشمال) يدخل أولاً بشويش بنعومة كاملة ويستقر بارتجاج رزين دقيق */
+/* 1. الجانب الأيسر (الشمال) ينزلق بهدوء وسلاسة تامة ومستقيمة 0% -> 100% بدون أي اهتزاز */
 @keyframes sequential-glide-left {
   0% {
     opacity: 0;
-    transform: translateX(-120px);
-  }
-  75% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  86% {
-    transform: translateX(5px);
-  }
-  94% {
-    transform: translateX(-2px);
+    transform: translateX(-100px);
   }
   100% {
     opacity: 1;
@@ -534,21 +524,11 @@ html[dir='rtl'] .animate-landing-hero-end {
   }
 }
 
-/* 2. الجانب الأيمن (اليمين) يدخل ثانياً بعد وصول الجانب الأيسر بشويش بنعومة كاملة */
+/* 2. الجانب الأيمن (اليمين) ينزلق ثانياً بهدوء وسلاسة تامة ومستقيمة 0% -> 100% بدون أي اهتزاز */
 @keyframes sequential-glide-right {
   0% {
     opacity: 0;
-    transform: translateX(120px);
-  }
-  75% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  86% {
-    transform: translateX(-5px);
-  }
-  94% {
-    transform: translateX(2px);
+    transform: translateX(100px);
   }
   100% {
     opacity: 1;
