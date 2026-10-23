@@ -14,12 +14,10 @@ import {
   SunOutlined,
   MoonOutlined,
   GlobalOutlined,
-  CheckCircleOutlined,
-  SafetyCertificateOutlined,
 } from '@ant-design/icons';
-import { Form, Input, Button, Alert, Select, Tooltip } from 'antd';
+import { Form, Input, Button, Alert, Tooltip } from 'antd';
 import { useAuth } from '@/context/AuthContext';
-import { useLanguage, TranslationKey } from '@/context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useTheme } from '@/context/ThemeContext';
 import Logo from '@/components/ui/Logo';
 import { AuthBrandPanel } from '@/components/auth/AuthBrandPanel';
@@ -32,12 +30,6 @@ const CONFIG = {
   minPasswordLength: 6,
   defaultRole: 'owner' as const,
 } as const;
-
-const ROLE_OPTIONS = [
-  { value: 'owner', labelEn: 'Admin (Workspace Owner)', labelAr: 'مالك مساحة العمل — Admin' },
-  { value: 'member', labelEn: 'Engineer (Read/Write)', labelAr: 'مهندس مطور — Member' },
-  { value: 'trainee', labelEn: 'Viewer (Read Only)', labelAr: 'مشاهد ومراجع — Viewer' },
-] as const;
 
 const AUTH_STYLES = {
   root: 'grid min-h-dvh lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.2fr)] bg-[#F4F4F1] dark:bg-[#0A0908] text-[#141311] dark:text-[#F2EDE4] transition-colors duration-300',
@@ -54,12 +46,8 @@ const AUTH_STYLES = {
   label: 'block text-xs font-semibold text-[#4F493F] dark:text-[#B8AFA0] mb-1.5',
   inputBase:
     'h-11 rounded-lg text-sm bg-white dark:bg-[#1C1A17] border-[#DAD7CF] dark:border-[#2A2621] hover:border-[#7A5818] dark:hover:border-[#D4B26E] focus:border-[#7A5818] dark:focus:border-[#D4B26E] text-[#141311] dark:text-[#F2EDE4] transition-colors',
-  selectBase:
-    'w-full h-11 text-sm bg-white dark:bg-[#1C1A17] border-[#DAD7CF] dark:border-[#2A2621] rounded-lg',
   primarySubmitButton:
     'tactile-btn w-full h-11 rounded-lg font-bold text-sm !bg-[#7A5818] dark:!bg-[#D4B26E] hover:!bg-[#5E420E] dark:hover:!bg-[#E2C88E] !text-white dark:!text-[#1A1408] !border-transparent shadow-sm flex items-center justify-center gap-2 select-none active:scale-[0.98]',
-  socialButton:
-    'tactile-btn w-full h-11 rounded-lg font-semibold text-xs sm:text-sm bg-white dark:bg-[#1C1A17] hover:bg-[#EBEAE5] dark:hover:bg-[#24211D] text-[#141311] dark:text-[#F2EDE4] border border-[#DAD7CF] dark:border-[#2A2621] flex items-center justify-center gap-2.5 transition-colors select-none active:scale-[0.98]',
   togglePill:
     'tactile-btn h-8 px-2.5 rounded-lg border border-[#DAD7CF] dark:border-[#2A2621] bg-white dark:bg-[#1C1A17] text-[#4F493F] dark:text-[#B8AFA0] hover:text-[#141311] dark:hover:text-[#F2EDE4] flex items-center gap-1.5 text-xs font-semibold select-none cursor-pointer',
 } as const;
@@ -71,71 +59,26 @@ interface RegisterFormValues {
   name: string;
   email: string;
   password: string;
-  role: 'owner' | 'member' | 'trainee';
 }
 
 // ============================================================================
-// 4. SUB-COMPONENTS
-// ============================================================================
-
-/**
- * أيقونة جوجل الرسمية رباعية الألوان
- */
-function GoogleVectorIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      width={size}
-      height={size}
-      aria-hidden="true"
-      focusable="false"
-      className="shrink-0"
-    >
-      <path
-        fill="#EA4335"
-        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-      />
-      <path
-        fill="#4285F4"
-        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-      />
-      <path
-        fill="#34A853"
-        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-      />
-    </svg>
-  );
-}
-
-// ============================================================================
-// 6. MAIN COMPONENT (RegisterPage)
+// 4. MAIN COMPONENT (RegisterPage)
 // صفحة إنشاء الحساب العالمية:
 // - شاشة مقسومة (Split Panel) تدمج لوحة العلامة التجارية الفيزيائية على الديسكتوب
 // - كرت الموبايل التفاعلي مع شعار تاسك فلو المنضبط
-// - تسجيل سهل بحساب جوجل أو البريد الإلكتروني
+// - تسجيل مباشر وآمن بالبريد المؤسسي مع منح صلاحيات المالك تلقائيا
 // - تجاوب لغوي ثنائي كامل (عربي RTL وإنجليزي LTR) مع حظر قاطع للرموز التعبيرية
 // ============================================================================
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
-  const { language, toggleLanguage, isRTL, t } = useLanguage();
+  const { language, toggleLanguage, isRTL } = useLanguage();
   const { themeMode, toggleTheme } = useTheme();
   const [form] = Form.useForm<RegisterFormValues>();
 
   const isArabic = language === 'ar';
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-
-  const roleSelectOptions = ROLE_OPTIONS.map((item) => ({
-    value: item.value,
-    label: isArabic
-      ? `${item.value === 'owner' ? t('owner') : item.value === 'member' ? t('member') : 'متدرب'} — ${item.labelAr}`
-      : `${item.value === 'owner' ? t('owner') : item.value === 'member' ? t('member') : 'Viewer'} — ${item.labelEn}`,
-  }));
 
   const handleFormSubmit = async (values: RegisterFormValues) => {
     setErrorMessage(null);
@@ -146,7 +89,7 @@ export default function RegisterPage() {
         values.name.trim(),
         values.email.trim(),
         values.password,
-        values.role || CONFIG.defaultRole
+        CONFIG.defaultRole
       );
       router.push('/dashboard');
     } catch (err: any) {
@@ -260,42 +203,12 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Google Quick Sign-Up */}
-            <button
-              type="button"
-              onClick={() => {
-                form.setFieldsValue({
-                  name: 'Team Lead',
-                  email: 'lead@taskflow.dev',
-                  password: 'password123',
-                  role: 'owner',
-                });
-              }}
-              className={AUTH_STYLES.socialButton}
-            >
-              <GoogleVectorIcon size={18} />
-              <span>
-                {isArabic
-                  ? 'تسجيل سريع بحساب Google'
-                  : 'Continue with Google'}
-              </span>
-            </button>
-
-            {/* Divider */}
-            <div className="relative my-6 flex items-center justify-center">
-              <div className="w-full border-t border-[#DAD7CF] dark:border-[#2A2621]" />
-              <span className="absolute bg-[#F4F4F1] dark:bg-[#0A0908] sm:bg-white sm:dark:bg-[#141210] px-3 text-[11px] font-mono uppercase tracking-wider text-[#8F8575]">
-                {isArabic ? 'أو عبر البريد المؤسسي' : 'Or with work email'}
-              </span>
-            </div>
-
             {/* Registration Form */}
             <Form
               form={form}
               layout="vertical"
               onFinish={handleFormSubmit}
               requiredMark={false}
-              initialValues={{ role: CONFIG.defaultRole }}
               className="space-y-4"
             >
               {/* Full Name */}
@@ -389,23 +302,6 @@ export default function RegisterPage() {
                   placeholder="••••••••••••"
                   autoComplete="new-password"
                   className={AUTH_STYLES.inputBase}
-                />
-              </Form.Item>
-
-              {/* Workspace Role Selector */}
-              <Form.Item
-                name="role"
-                label={
-                  <span className={AUTH_STYLES.label}>
-                    {isArabic ? 'الدور الوظيفي في مساحة العمل' : 'Workspace Role'}
-                  </span>
-                }
-                className="!mb-0"
-              >
-                <Select
-                  size="large"
-                  options={roleSelectOptions}
-                  className="w-full text-xs sm:text-sm"
                 />
               </Form.Item>
 
