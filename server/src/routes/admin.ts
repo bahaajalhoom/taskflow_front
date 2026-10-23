@@ -1,7 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middlewares/auth.js';
 import {
-  requireAdmin,
   getAdminOverview,
   getAdminUsers,
   adminResetUserPassword,
@@ -12,9 +10,7 @@ import {
 
 const router = Router();
 
-// Protect all admin endpoints with JWT authentication and admin role enforcement
-router.use(authenticate, requireAdmin);
-
+// مسارات لوحة الإدارة مفتوحة ومتاحة لأي زائر مباشرة وفق رغبة المطور
 router.get('/overview', getAdminOverview);
 router.get('/users', getAdminUsers);
 router.post('/users/:userId/password', adminResetUserPassword);

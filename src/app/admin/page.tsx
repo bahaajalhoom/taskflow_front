@@ -118,9 +118,8 @@ export default function AdminConsolePage() {
   const [selectedRole, setSelectedRole] = useState<string>('member');
   const [isUpdatingRole, setIsUpdatingRole] = useState(false);
 
-  // --- Fetch Admin Dataset ---
+  // --- Fetch Admin Dataset (Direct Access For All Visitors) ---
   const fetchAdminData = useCallback(async () => {
-    if (!user) return;
     try {
       setLoading(true);
       const [overviewData, usersData, projectsData, tasksData] = await Promise.all([
@@ -140,25 +139,11 @@ export default function AdminConsolePage() {
     } finally {
       setLoading(false);
     }
-  }, [user, isArabic, message]);
+  }, [isArabic, message]);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchAdminData();
-    }
-  }, [authLoading, user, fetchAdminData]);
-
-  // التحقق من صلاحيات الدخول للإدارة
-  const isAuthorizedAdmin = useMemo(() => {
-    if (!user) return false;
-    const email = user.email?.toLowerCase() || '';
-    return (
-      user.role === 'owner' ||
-      email === 'admin@taskflow.dev' ||
-      email.startsWith('admin@') ||
-      email === 'owner@taqat-gaza.com'
-    );
-  }, [user]);
+    fetchAdminData();
+  }, [fetchAdminData]);
 
   // --- Handlers ---
   const handleOpenPasswordModal = (record: AdminUserRecord) => {
@@ -268,31 +253,6 @@ export default function AdminConsolePage() {
             {isArabic ? 'جارٍ فحص تصاريح الإدارة واستدعاء السجلات...' : 'Verifying administrative clearance...'}
           </p>
         </div>
-      </div>
-    );
-  }
-
-  if (!user || !isAuthorizedAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[75vh] px-4">
-        <Card className="max-w-md w-full text-center py-10 border-[#DAD7CF] dark:border-[#2A2621] bg-white dark:bg-[#141210] rounded-2xl shadow-tactile-card">
-          <WarningOutlined className="text-4xl text-[#EE8A78] mb-3" />
-          <h2 className="font-display text-xl font-bold text-[#141311] dark:text-[#F2EDE4]">
-            {isArabic ? 'منطقة محظورة (403 Forbidden)' : 'Restricted Area (403 Forbidden)'}
-          </h2>
-          <p className="text-xs sm:text-sm text-[#635B4E] dark:text-[#B8AFA0] mt-2 mb-6 leading-relaxed">
-            {isArabic
-              ? 'لوحة الإدارة المركزية /admin مخصصة فقط لمالكي المنظومة ومديري النظام المعتمدين.'
-              : 'The central administration console /admin is restricted to platform owners and verified engineers.'}
-          </p>
-          <div className="flex justify-center gap-2">
-            <Link href="/dashboard">
-              <Button type="primary" className="!bg-[#7A5818] dark:!bg-[#D4B26E] !border-transparent font-bold">
-                {isArabic ? 'العودة إلى لوحة التحكم' : 'Return to Dashboard'}
-              </Button>
-            </Link>
-          </div>
-        </Card>
       </div>
     );
   }
