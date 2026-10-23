@@ -316,49 +316,6 @@ html.dark .view-tab-active {
   border-radius: 6px !important;
 }
 
-/* Ant Design Segmented component - comfortable size and vertical centering */
-.ant-segmented {
-  vertical-align: middle;
-}
-
-.ant-segmented .ant-segmented-group {
-  align-items: stretch;
-}
-
-.ant-segmented .ant-segmented-item {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.ant-segmented .ant-segmented-item-label {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: 36px !important;
-  height: 36px !important;
-  line-height: normal !important;
-  padding: 0 14px !important;
-  gap: 6px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-}
-
-.ant-segmented .ant-segmented-item-icon {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  line-height: 0 !important;
-}
-
-.ant-segmented .anticon {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  vertical-align: middle !important;
-  line-height: 0 !important;
-}
-
 /* Page entrance motion */
 @keyframes pageFadeSlide {
   0% {

@@ -1236,43 +1236,47 @@ export default function ProjectDetailsPage() {
         <div className="pt-3 border-t border-[#DDDAD3]/70 dark:border-[#2C2824]/70 flex flex-wrap items-center justify-between gap-3">
           {/* Left: View Mode Toggle (Guaranteed No-Wrap Horizontal Layout) */}
           <div className="shrink-0 overflow-x-auto py-0.5">
-            <Segmented
-              value={viewMode}
-              onChange={(val) => setViewMode(val as ViewMode)}
-              size="middle"
-              options={[
+            <div
+              role="tablist"
+              aria-label="View Switcher"
+              className="inline-flex items-center p-1 rounded-lg bg-[#EDECE8] dark:bg-[#1C1A17] border border-[#DDDAD3] dark:border-[#2C2824] gap-1"
+            >
+              {[
+                { id: 'kanban', label: t('kanbanBoard'), icon: AppstoreOutlined },
+                { id: 'table', label: t('tableView'), icon: UnorderedListOutlined },
+                { id: 'timeline', label: isArabic ? 'المسار الزمني' : 'Timeline', icon: CalendarOutlined },
+                { id: 'chat', label: isArabic ? 'شات الفريق' : 'Team Chat', icon: MessageOutlined },
                 {
-                  value: 'kanban',
-                  icon: <AppstoreOutlined className="text-sm shrink-0" />,
-                  label: <span>{t('kanbanBoard')}</span>,
+                  id: 'meeting',
+                  label: isArabic ? 'غرفة الاجتماع' : 'Meeting',
+                  icon: VideoCameraOutlined,
+                  isLive: true,
                 },
-                {
-                  value: 'table',
-                  icon: <UnorderedListOutlined className="text-sm shrink-0" />,
-                  label: <span>{t('tableView')}</span>,
-                },
-                {
-                  value: 'timeline',
-                  icon: <CalendarOutlined className="text-sm shrink-0" />,
-                  label: <span>{isArabic ? 'المسار الزمني' : 'Timeline'}</span>,
-                },
-                {
-                  value: 'chat',
-                  icon: <MessageOutlined className="text-sm shrink-0" />,
-                  label: <span>{isArabic ? 'شات الفريق' : 'Team Chat'}</span>,
-                },
-                {
-                  value: 'meeting',
-                  icon: <VideoCameraOutlined className="text-sm shrink-0" />,
-                  label: (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span>{isArabic ? 'غرفة الاجتماع' : 'Meeting'}</span>
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = viewMode === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setViewMode(tab.id as ViewMode)}
+                    className={`inline-flex items-center justify-center gap-2 px-3.5 h-[34px] rounded-md text-xs sm:text-sm font-semibold transition-all duration-150 select-none outline-none ${
+                      isActive
+                        ? 'bg-white dark:bg-[#24211D] text-[#7A5818] dark:text-[#D4B26E] shadow-xs font-bold border border-black/5 dark:border-white/5'
+                        : 'text-[#5A5348] dark:text-[#B5AC9C] hover:text-[#1B1915] dark:hover:text-[#EFE9DD] hover:bg-black/5 dark:hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
+                    <Icon className="text-sm shrink-0 flex items-center justify-center" />
+                    <span className="leading-none flex items-center">{tab.label}</span>
+                    {tab.isLive && (
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    </span>
-                  ),
-                },
-              ]}
-            />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Right: Quick Action / Contextual Status */}
