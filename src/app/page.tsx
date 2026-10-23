@@ -340,10 +340,10 @@ export default function HomePage() {
   return (
     <div className={STYLES.container}>
       {/* 1. PRECISION HERO & INTERACTIVE WORKBENCH */}
-      <section className="pt-8 sm:pt-14 pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="pt-8 sm:pt-14 pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Column (5 cols): Direct Value Proposition */}
-          <div className="lg:col-span-5 space-y-6 text-start">
+          <div className="lg:col-span-5 space-y-6 text-start animate-landing-hero-start">
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EDECE8] dark:bg-[#1C1A17] border border-[#DDDAD3] dark:border-[#2C2824] text-[11px] font-mono font-medium text-[#5A5348] dark:text-[#B5AC9C]">
                 <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
@@ -439,7 +439,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Column (7 cols): The Living Interactive Sprint Canvas */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 animate-landing-hero-end">
             <div className={STYLES.tactileCard}>
               {/* Product Header Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 border-b border-[#DDDAD3] dark:border-[#2C2824] bg-[#EDECE8]/60 dark:bg-[#11100E] gap-3">
@@ -777,7 +777,7 @@ export default function HomePage() {
       </section>
 
       {/* 2. SYSTEM ARCHITECTURE & GOVERNANCE */}
-      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-[#DDDAD3] dark:border-[#2C2824]">
+      <section className="py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-[#DDDAD3] dark:border-[#2C2824] animate-landing-from-bottom [animation-delay:240ms]">
         <div className="max-w-3xl mb-8 text-start">
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#1B1915] dark:text-[#EFE9DD] font-display">
             {isArabic ? 'معمارية المنظومة ومحرك الحوكمة' : 'Core Architecture & Governance Engine'}
@@ -1000,7 +1000,7 @@ export default function HomePage() {
       </section>
 
       {/* 2.5 ARCHITECTURAL CONTRAST MATRIX (ZERO AI SLOP CRAFT) */}
-      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-landing-from-bottom [animation-delay:320ms]">
         <div className="rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] p-6 sm:p-8 shadow-xs">
           <div className="max-w-2xl mb-6 text-start">
             <span className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#7A5818] dark:text-[#D4B26E] block mb-1">
@@ -1088,7 +1088,7 @@ export default function HomePage() {
       </section>
 
       {/* 3. KEYBOARD SHORTCUTS PALETTE STRIP */}
-      <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <section className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto animate-landing-from-bottom [animation-delay:400ms]">
         <div className="rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white/70 dark:bg-[#141211]/70 px-4 py-3 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
@@ -1134,7 +1134,7 @@ export default function HomePage() {
       </section>
 
       {/* 4. ARCHITECTURAL DISPATCH CONSOLE */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-[#DDDAD3] dark:border-[#2C2824]">
+      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-[#DDDAD3] dark:border-[#2C2824] animate-landing-from-bottom [animation-delay:480ms]">
         <div className="rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1 text-start">
             <h3 className="text-lg sm:text-xl font-black tracking-tight text-[#1B1915] dark:text-[#EFE9DD] font-display">

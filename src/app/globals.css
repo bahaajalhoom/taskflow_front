@@ -48,64 +48,63 @@
   --pr-high-fg: #A64B12;
   --pr-urgent-fg: #8E2517;
 
-  /* منحنى فيزياء التفاعل الناعم والواقعي */
+  /* منحنى حركة إميل كوالسكي اللمسي المعتمد */
   --ease-tactile: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-cinematic: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 html.dark {
-  /* نظام ألوان تاسك فلو المعتمد — الوضع الداكن الفخم (Obsidian Precision) */
-  --bg: #0A0908;
-  --surface: #141210;
+  /* نظام ألوان تاسك فلو المعتمد — الوضع الداكن (Obsidian Gold) */
+  --bg: #0C0B0A;
+  --surface: #141211;
   --surface-2: #1C1A17;
-  --surface-overlay: #24211D;
-  --surface-hover: #201E1A;
-  --line: #2A2621;
-  --line-strong: #3D3730;
+  --surface-overlay: #26231F;
+  --surface-hover: #1E1C19;
+  --line: #2C2824;
+  --line-strong: #3A352F;
   --control-border: #6B6254;
 
-  --text: #F2EDE4;
-  --text-2: #B8AFA0;
-  --text-3: #8F8575;
+  --text: #EFE9DD;
+  --text-2: #B5AC9C;
+  --text-3: #9A9183;
 
-  /* لون التأكيد والتركيز في الوضع الليلي (Solar Champagne Gold) */
+  /* لون التأكيد والتركيز في الوضع الداكن (Architectural Gold) */
   --accent: #D4B26E;
   --accent-hover: #E2C88E;
   --accent-subtle: rgba(212, 178, 110, 0.12);
   --on-accent: #1A1408;
 
-  /* السايد بار والنافبار الموحدة مع الكانفاس */
+  /* ألوان السايد بار والنافبار العلوي الموحدة مع الكانفاس في الوضع الداكن */
   --sidebar-bg: var(--bg);
-  --sidebar-text: #B8AFA0;
-  --sidebar-text-strong: #F2EDE4;
+  --sidebar-text: #B5AC9C;
+  --sidebar-text-strong: #EFE9DD;
   --sidebar-hover-bg: #1C1A17;
   --sidebar-active-bg: rgba(212, 178, 110, 0.12);
   --sidebar-active-text: #D4B26E;
-  --sidebar-border: #2A2621;
+  --sidebar-border: #2C2824;
 
-  /* توكنز حالات المهام في الوضع الليلي */
-  --st-todo-fg: #B8AFA0;
+  /* توكنز حالات المهام في الوضع الداكن بدرجات هادئة */
+  --st-todo-fg: #B5AC9C;
   --st-todo-bg: #1C1A17;
   --st-progress-fg: #8DB4E8;
-  --st-progress-bg: #132034;
+  --st-progress-bg: rgba(141, 180, 232, 0.12);
   --st-done-fg: #9CC5A1;
-  --st-done-bg: #132516;
+  --st-done-bg: rgba(156, 197, 161, 0.12);
   --st-overdue-fg: #EE8A78;
-  --st-overdue-bg: #2E1613;
+  --st-overdue-bg: rgba(238, 138, 120, 0.14);
 
-  /* توكنز الأولوية في الوضع الليلي */
-  --pr-low-fg: #B8AFA0;
+  /* توكنز الأولوية في الوضع الداكن */
+  --pr-low-fg: #B5AC9C;
   --pr-medium-fg: #8DB4E8;
-  --pr-high-fg: #E58B44;
+  --pr-high-fg: #D4B26E;
   --pr-urgent-fg: #EE8A78;
 }
 
 body {
   color: var(--text);
   background: var(--bg);
-  font-family: 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
-  font-size: 16.5px;
-  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -158,95 +157,53 @@ html[dir='rtl'] .text-xs {
 }
 
 html[dir='rtl'] .text-sm {
-  font-size: 0.975rem !important;
-  line-height: 1.55 !important;
-}
-
-html[dir='rtl'] .text-base {
-  font-size: 1.05rem !important;
+  font-size: 0.96875rem !important;
   line-height: 1.6 !important;
 }
 
-html[dir='rtl'] .text-\[10px\],
-html[dir='rtl'] .text-\[11px\] {
-  font-size: 0.875rem !important;
+html[dir='rtl'] .text-base {
+  font-size: 1.03125rem !important;
+  line-height: 1.65 !important;
 }
 
-/* Headings font — Clean Modern Sans-Serif (Linear SaaS standard) */
-h1, h2, h3, .font-display {
-  font-family: 'Inter', 'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-feature-settings: 'lining-nums', 'tabular-nums';
-}
-
-/* Bilingual Arabic Typography & Diacritic Breathing Room */
-html[dir='rtl'] body,
-html[dir='rtl'] .ant-typography,
-html[dir='rtl'] .ant-btn,
-html[dir='rtl'] .ant-input,
-html[dir='rtl'] .ant-input-affix-wrapper,
-html[dir='rtl'] .ant-select,
-html[dir='rtl'] .ant-card,
-html[dir='rtl'] .ant-modal,
-html[dir='rtl'] .ant-dropdown,
-html[dir='rtl'] .ant-tag,
-html[dir='rtl'] .ant-badge,
-html[dir='rtl'] .ant-segmented,
-html[dir='rtl'] .ant-table,
-html[dir='rtl'] .ant-drawer {
-  font-family: 'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif !important;
-  letter-spacing: normal !important;
-  line-height: 1.72; /* Comfortable ascender/descender clearance for Arabic */
-}
-
-html[dir='rtl'] h1,
-html[dir='rtl'] h2,
-html[dir='rtl'] h3,
-html[dir='rtl'] .font-display {
-  font-family: 'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif !important;
-}
-
-/* Absolute elimination of disjointed cursive Arabic letters caused by letter-spacing or tracking */
-html[dir='rtl'] *,
-html[dir='rtl'] *::before,
-html[dir='rtl'] *::after,
-html[dir='rtl'] .tracking-tight,
-html[dir='rtl'] .tracking-wide,
-html[dir='rtl'] .tracking-wider,
-html[dir='rtl'] .tracking-widest {
-  letter-spacing: normal !important;
-}
-
-/* Tabular figures for dense metrics and task counts */
-.tnum, .num {
-  font-variant-numeric: lining-nums tabular-nums;
-  font-feature-settings: 'tnum', 'lnum';
-}
-
-/* Monospace Badge Utility */
-.font-mono-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-feature-settings: 'tnum', 'zero';
-}
-
-/* Precision WCAG Focus Ring */
-*:focus-visible {
+/* Consistent Focus Styles (WCAG AA Compliance) */
+:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* Ant Design Segmented Item Guarantee: Always horizontal, never wrapped */
-.ant-segmented .ant-segmented-item,
-.ant-segmented .ant-segmented-item-label {
-  white-space: nowrap !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+/* High Contrast & Clean Table Styling */
+.ant-table-wrapper {
+  background: transparent;
 }
 
-/* Minimalist Engineered Scrollbar */
+/* Light Mode Overrides for Crisp Visuals */
+html:not(.dark) {
+  --table-border-color: #E2E8F0;
+  --table-header-bg: #F8FAFC;
+  --table-row-hover: #F1F5F9;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --card-hover-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+/* Dark Mode Overrides for Deep Charcoal Canvas */
+html.dark {
+  --table-border-color: #1e2430;
+  --table-header-bg: #11141c;
+  --table-row-hover: #181d28;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --card-hover-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+}
+
+/* Clean UI Transition */
+* {
+  border-color: inherit;
+}
+
+/* Enhanced Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -254,24 +211,112 @@ html[dir='rtl'] .tracking-widest {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--line-strong);
+  background: rgba(100, 116, 139, 0.2);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--control-border);
+  background: rgba(100, 116, 139, 0.35);
 }
 
-/* Fine Hairline Border */
-.hairline-border {
-  border: 1px solid var(--line);
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.15);
 }
 
-.hairline-border-strong {
-  border: 1px solid var(--line-strong);
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.25);
 }
 
-/* Tactile Micro-Interactions */
+/* Arabic typography enhancements */
+html[dir='rtl'] {
+  font-family: 'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+html[dir='rtl'] h1,
+html[dir='rtl'] h2,
+html[dir='rtl'] h3,
+html[dir='rtl'] h4,
+html[dir='rtl'] h5,
+html[dir='rtl'] h6 {
+  font-family: 'IBM Plex Sans Arabic', 'Cairo', system-ui, -apple-system, sans-serif;
+  line-height: 1.35;
+}
+
+/* Selection highlight - luxury brand gold/bronze tint */
+::selection {
+  background-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Mobile responsive padding and touch targets */
+@media (max-width: 768px) {
+  .ant-btn {
+    min-height: 38px;
+  }
+}
+
+/* Responsive Table Horizontal Scroll Container */
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Subtle, authentic card hover transition (eliminates bouncy template feel) */
+.craft-card {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1),
+              border-color 160ms ease,
+              box-shadow 160ms ease;
+}
+
+.craft-card:hover {
+  transform: translateY(-1.5px);
+}
+
+.craft-card:active {
+  transform: translateY(0);
+}
+
+/* Status indicator pill - high contrast, no neon bloom */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+/* View switcher tab active state */
+.view-tab-active {
+  background-color: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+html.dark .view-tab-active {
+  background-color: #1e2430;
+  color: #f8fafc;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Checkbox refinement for Task Lists */
+.ant-checkbox-inner {
+  border-radius: 4px !important;
+}
+
+/* Tooltip typography alignment */
+.ant-tooltip-inner {
+  font-size: 11px !important;
+  font-family: inherit !important;
+  border-radius: 6px !important;
+}
+
+/* Page entrance motion */
 @keyframes pageFadeSlide {
   0% {
     opacity: 0;
@@ -337,6 +382,104 @@ html.dark .tactile-card:hover {
 }
 
 /* ============================================================================
+   Orchestrated Cinema Physics for Landing Page Entrance
+   ============================================================================ */
+
+/* 1. Header descends majestically from top */
+@keyframes landing-header-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 2. Hero Left content glides in from Start (Left in LTR, Right in RTL) */
+@keyframes landing-slide-from-start-ltr {
+  0% {
+    opacity: 0;
+    transform: translateX(-56px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes landing-slide-from-start-rtl {
+  0% {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 3. Hero Right workbench glides in from End (Right in LTR, Left in RTL) */
+@keyframes landing-slide-from-end-ltr {
+  0% {
+    opacity: 0;
+    transform: translateX(56px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes landing-slide-from-end-rtl {
+  0% {
+    opacity: 0;
+    transform: translateX(-56px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 4. Sections & Cards glide up majestically from bottom */
+@keyframes landing-slide-from-bottom {
+  0% {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-landing-header {
+  animation: landing-header-drop 700ms var(--ease-cinematic) both;
+}
+
+.animate-landing-hero-start {
+  animation: landing-slide-from-start-ltr 850ms var(--ease-cinematic) 100ms both;
+}
+
+html[dir='rtl'] .animate-landing-hero-start {
+  animation-name: landing-slide-from-start-rtl;
+}
+
+.animate-landing-hero-end {
+  animation: landing-slide-from-end-ltr 850ms var(--ease-cinematic) 160ms both;
+}
+
+html[dir='rtl'] .animate-landing-hero-end {
+  animation-name: landing-slide-from-end-rtl;
+}
+
+.animate-landing-from-bottom {
+  animation: landing-slide-from-bottom 850ms var(--ease-cinematic) both;
+}
+
+/* ============================================================================
    TaskFlow Signature Organic Tile Drop & Sorting Physics Animation
    ============================================================================ */
 @keyframes tile-drop {
@@ -392,6 +535,10 @@ html.dark .tactile-card:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-landing-header,
+  .animate-landing-hero-start,
+  .animate-landing-hero-end,
+  .animate-landing-from-bottom,
   .animate-tile-drop,
   .animate-intro-text {
     animation: none !important;

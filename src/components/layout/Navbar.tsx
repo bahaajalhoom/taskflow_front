@@ -164,8 +164,11 @@ export default function Navbar({
 
   // Public visitor topbar (Landing page, login, register)
   if (!user) {
+    const isLandingPage = pathname === '/';
     return (
-      <header className={STYLES.header}>
+      <header
+        className={`${STYLES.header} ${isLandingPage ? 'animate-landing-header' : ''}`}
+      >
         <div className={STYLES.container}>
           <div className="flex items-center gap-2">
             <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
