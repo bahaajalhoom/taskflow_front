@@ -270,13 +270,14 @@ function ProjectCard({
               >
                 <Avatar
                   size={24}
+                  src={info?.avatarUrl || info?.photoURL}
                   className={`text-xs border border-white dark:border-[#141211] font-semibold ${
                     isProjectOwner
                       ? 'bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408]'
                       : 'bg-[#EDECE8] dark:bg-[#1C1A17] text-[#1B1915] dark:text-[#EFE9DD]'
                   }`}
                 >
-                  {name.charAt(0).toUpperCase()}
+                  {!info?.avatarUrl && !info?.photoURL && name.charAt(0).toUpperCase()}
                 </Avatar>
               </Tooltip>
             );

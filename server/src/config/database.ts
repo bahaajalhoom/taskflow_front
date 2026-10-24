@@ -64,8 +64,29 @@ export async function initDatabase(): Promise<void> {
       password_hash TEXT NOT NULL,
       display_name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'member',
+      avatar_url TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+  `);
+
+  // Ensure avatar_url column exists for existing tables
+  try {
+    await dbRun('ALTER TABLE users ADD COLUMN avatar_url TEXT;');
+  } catch {
+    // Column already exists, safe to ignore
+  }
+
+  // 1.1 Password Resets table (Enterprise cryptographic single-use tokens)
+  await dbRun(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
 
@@ -228,6 +249,8 @@ export async function initDatabase(): Promise<void> {
 
   // فهارس لتحسين سرعة الاستعلامات والكانبان ولوحة التحكم
   await dbRun('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash);');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects(owner_id);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);');

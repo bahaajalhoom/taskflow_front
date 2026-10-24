@@ -143,12 +143,13 @@ export const getAdminUsers = async (
       email: string;
       display_name: string;
       role: string;
+      avatar_url?: string | null;
       created_at: string;
       password_hash: string;
       projects_count: number;
       tasks_count: number;
     }>(
-      `SELECT u.id, u.email, u.display_name, u.role, u.created_at, u.password_hash,
+      `SELECT u.id, u.email, u.display_name, u.role, u.avatar_url, u.created_at, u.password_hash,
               (SELECT COUNT(*) FROM project_members pm WHERE pm.user_id = u.id) as projects_count,
               (SELECT COUNT(*) FROM tasks t WHERE t.assignee_id = u.id) as tasks_count
        FROM users u
@@ -163,6 +164,8 @@ export const getAdminUsers = async (
         email: u.email,
         displayName: u.display_name,
         role: u.role,
+        avatarUrl: u.avatar_url || undefined,
+        photoURL: u.avatar_url || undefined,
         createdAt: u.created_at,
         projectsCount: u.projects_count || 0,
         tasksCount: u.tasks_count || 0,

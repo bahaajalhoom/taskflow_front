@@ -266,9 +266,10 @@ export default function AdminConsolePage() {
         <div className="flex items-center gap-3">
           <Avatar
             size={36}
+            src={r.avatarUrl || r.photoURL}
             className="font-bold bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] shrink-0"
           >
-            {r.displayName.charAt(0).toUpperCase()}
+            {!r.avatarUrl && !r.photoURL && r.displayName.charAt(0).toUpperCase()}
           </Avatar>
           <div className="min-w-0">
             <div className="font-bold text-sm text-[#141311] dark:text-[#F2EDE4] truncate">

@@ -203,13 +203,14 @@ function MemberRow({ memberId, project, currentUserId, t, onRemoveMember, onUpda
         avatar={
           <Avatar
             size={36}
+            src={member?.avatarUrl || member?.photoURL}
             className={`font-bold text-sm ${
               isProjectOwner
                 ? 'bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408]'
                 : 'bg-[#EDECE8] dark:bg-[#1C1A17] text-[#1B1915] dark:text-[#EFE9DD]'
             }`}
           >
-            {member?.displayName?.charAt(0).toUpperCase() || 'U'}
+            {!member?.avatarUrl && !member?.photoURL && (member?.displayName?.charAt(0).toUpperCase() || 'U')}
           </Avatar>
         }
         title={

@@ -463,6 +463,7 @@ export default function Navbar({
             >
               <Avatar
                 size={28}
+                src={user.avatarUrl || user.photoURL}
                 style={{
                   backgroundColor: isOwner ? 'var(--accent)' : 'var(--surface-2)',
                   color: isOwner ? 'var(--on-accent)' : 'var(--text)',
@@ -470,7 +471,7 @@ export default function Navbar({
                 }}
                 className="font-bold text-xs"
               >
-                {user.displayName?.charAt(0).toUpperCase() || 'U'}
+                {!user.avatarUrl && !user.photoURL && (user.displayName?.charAt(0).toUpperCase() || 'U')}
               </Avatar>
             </button>
           </Dropdown>

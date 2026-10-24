@@ -102,6 +102,8 @@ interface MemberRowItem {
   role: string;
   domainTitle: string;
   isOwner: boolean;
+  avatarUrl?: string;
+  photoURL?: string;
   customPermissions?: CustomPermissions | null;
 }
 
@@ -171,6 +173,8 @@ export default function TeamRosterModal({
         role,
         domainTitle: info?.domainTitle || getDomainTitle(role, email),
         isOwner,
+        avatarUrl: info?.avatarUrl,
+        photoURL: info?.photoURL,
         customPermissions: info?.customPermissions || null,
       };
     });
@@ -551,13 +555,14 @@ export default function TeamRosterModal({
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Avatar
                             size={32}
+                            src={m.avatarUrl || m.photoURL}
                             className={`font-bold text-xs shrink-0 ${
                               m.isOwner
                                 ? 'bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408]'
                                 : 'bg-[#EDECE8] dark:bg-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD]'
                             }`}
                           >
-                            {m.displayName.charAt(0).toUpperCase()}
+                            {!m.avatarUrl && !m.photoURL && m.displayName.charAt(0).toUpperCase()}
                           </Avatar>
                           <div className="min-w-0">
                             <div className="font-semibold text-[#1B1915] dark:text-[#EFE9DD] truncate flex items-center gap-1">

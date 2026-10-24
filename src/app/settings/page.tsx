@@ -3,7 +3,7 @@
 // ============================================================================
 // 1. IMPORTS
 // ============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   SettingOutlined,
@@ -21,6 +21,11 @@ import {
   DeleteOutlined,
   BellOutlined,
   SaveOutlined,
+  CameraOutlined,
+  UploadOutlined,
+  PictureOutlined,
+  LoadingOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
 import {
   Card,
@@ -70,6 +75,49 @@ const STYLES = {
     'border border-rose-300 dark:border-rose-900/60 bg-rose-50/20 dark:bg-rose-950/20 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4',
 };
 
+const PRESET_AVATARS = [
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=256&h=256&fit=crop&crop=faces',
+  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=256&h=256&fit=crop&crop=faces',
+];
+
+/**
+ * Resizes and crops an image file to a clean square JPEG Data URL (~35KB).
+ * Enables direct persistence into SQLite without third-party storage bloat.
+ */
+function resizeImageToDataUrl(file: File, maxDim: number = 256): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = maxDim;
+        canvas.height = maxDim;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          return resolve(e.target?.result as string);
+        }
+        // Center-crop to perfect square
+        const minEdge = Math.min(img.width, img.height);
+        const sx = (img.width - minEdge) / 2;
+        const sy = (img.height - minEdge) / 2;
+        ctx.drawImage(img, sx, sy, minEdge, minEdge, 0, 0, maxDim, maxDim);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = () => reject(new Error('Failed to decode image file.'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 // ============================================================================
 // 6. MAIN COMPONENT (SettingsPage)
 // ============================================================================
@@ -88,6 +136,12 @@ export default function SettingsPage() {
   const [fullName, setFullName] = useState(user?.displayName || '');
   const [workEmail, setWorkEmail] = useState(user?.email || '');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Profile Avatar Management State
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarUrlInput, setAvatarUrlInput] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Change Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -197,7 +251,8 @@ export default function SettingsPage() {
 
     try {
       setIsSavingProfile(true);
-      await DataService.updateUserProfile(cleanName);
+      const currentAvatar = user?.avatarUrl || user?.photoURL || null;
+      await DataService.updateUserProfile(cleanName, currentAvatar);
       updateUser({ displayName: cleanName });
       message.success(isArabic ? 'تم حفظ بيانات الحساب بنجاح.' : 'Account profile saved successfully.');
     } catch (err: any) {
@@ -205,6 +260,71 @@ export default function SettingsPage() {
     } finally {
       setIsSavingProfile(false);
     }
+  };
+
+  // Save or Remove User Avatar
+  const saveAvatar = async (newAvatarUrl: string | null) => {
+    try {
+      setIsUploadingAvatar(true);
+      const cleanName = fullName.trim() || user?.displayName || 'User';
+      await DataService.updateUserProfile(cleanName, newAvatarUrl);
+      updateUser({
+        avatarUrl: newAvatarUrl || undefined,
+        photoURL: newAvatarUrl || undefined,
+      });
+      message.success(
+        newAvatarUrl
+          ? (isArabic ? 'تم تحديث الصورة الشخصية بنجاح.' : 'Profile picture updated successfully.')
+          : (isArabic ? 'تمت إزالة الصورة الشخصية والعودة للأحرف الأولى.' : 'Profile picture removed.')
+      );
+      setIsAvatarModalOpen(false);
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to update avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // Handle local image file selection
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      message.error(isArabic ? 'يرجى اختيار ملف صورة صالح (PNG, JPG, WebP)' : 'Please select a valid image file');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      message.error(isArabic ? 'حجم الصورة كبير جداً (الحد الأقصى 10 ميغابايت)' : 'Image is too large (max 10MB)');
+      return;
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const dataUrl = await resizeImageToDataUrl(file, 256);
+      await saveAvatar(dataUrl);
+    } catch (err: any) {
+      message.error(err?.message || 'Failed to process image');
+    } finally {
+      setIsUploadingAvatar(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Handle custom image URL submission
+  const handleApplyCustomUrl = async () => {
+    const trimmed = avatarUrlInput.trim();
+    if (!trimmed) {
+      message.error(isArabic ? 'يرجى إدخال رابط صورة صحيح' : 'Please enter an image URL');
+      return;
+    }
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('data:image/')) {
+      message.error(isArabic ? 'يجب أن يبدأ الرابط بـ https://' : 'URL must start with https://');
+      return;
+    }
+    await saveAvatar(trimmed);
+    setAvatarUrlInput('');
   };
 
   // Update Password
@@ -856,32 +976,61 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <div className="relative">
+                    {/* Interactive Profile Avatar with hover camera badge */}
+                    <div
+                      className="relative group cursor-pointer shrink-0"
+                      onClick={() => setIsAvatarModalOpen(true)}
+                      title={isArabic ? 'انقر لتغيير الصورة' : 'Click to change photo'}
+                    >
                       <Avatar
-                        size={56}
-                        className="bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] font-bold text-xl shadow-xs"
+                        size={64}
+                        src={user?.avatarUrl || user?.photoURL}
+                        className="bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] font-bold text-2xl shadow-sm border-2 border-[#DDDAD3] dark:border-[#2C2824]"
                       >
-                        {fullName?.charAt(0)?.toUpperCase() || user?.displayName?.charAt(0)?.toUpperCase() || 'U'}
+                        {!user?.avatarUrl && !user?.photoURL && (fullName?.charAt(0)?.toUpperCase() || user?.displayName?.charAt(0)?.toUpperCase() || 'U')}
                       </Avatar>
-                      <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-[#141211]" />
+                      <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-lg">
+                        <CameraOutlined />
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#141211]" />
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        onChange={handleFileSelect}
+                      />
                       <Button
                         size="middle"
-                        onClick={() => message.info(isArabic ? 'ميزة رفع الصورة متاحة قريباً' : 'Photo upload ready.')}
+                        icon={<UploadOutlined />}
+                        loading={isUploadingAvatar}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={STYLES.primaryBtn}
+                      >
+                        {isArabic ? 'رفع صورة' : 'Upload Photo'}
+                      </Button>
+                      <Button
+                        size="middle"
+                        icon={<PictureOutlined />}
+                        onClick={() => setIsAvatarModalOpen(true)}
                         className={STYLES.secondaryBtn}
                       >
-                        {isArabic ? 'تغيير الصورة' : 'Change Avatar'}
+                        {isArabic ? 'معرض الصور الرمزية' : 'Browse Avatars'}
                       </Button>
-                      <Button
-                        type="text"
-                        size="middle"
-                        onClick={() => message.info('Avatar reset to default initials')}
-                        className="text-xs text-[#5A5348] dark:text-[#9A9183] hover:text-rose-500"
-                      >
-                        {isArabic ? 'إزالة' : 'Remove'}
-                      </Button>
+                      {(user?.avatarUrl || user?.photoURL) && (
+                        <Button
+                          type="text"
+                          size="middle"
+                          loading={isUploadingAvatar}
+                          onClick={() => saveAvatar(null)}
+                          className="text-xs text-[#5A5348] dark:text-[#9A9183] hover:text-rose-500"
+                        >
+                          {isArabic ? 'إزالة' : 'Remove'}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1117,6 +1266,131 @@ export default function SettingsPage() {
             placeholder="delete"
             className="font-mono text-sm"
           />
+        </div>
+      </Modal>
+
+      {/* Avatar Customization Modal */}
+      <Modal
+        open={isAvatarModalOpen}
+        onCancel={() => setIsAvatarModalOpen(false)}
+        footer={null}
+        width={540}
+        centered
+        title={
+          <div className="flex items-center gap-2 text-base font-bold text-[#1B1915] dark:text-[#EFE9DD]">
+            <PictureOutlined className="text-[#7A5818] dark:text-[#D4B26E]" />
+            <span>{isArabic ? 'تخصيص الصورة الشخصية' : 'Customize Profile Picture'}</span>
+          </div>
+        }
+      >
+        <div className="py-4 space-y-6">
+          {/* Section 1: Upload from Device */}
+          <div className="space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#5A5348] dark:text-[#9A9183]">
+              {isArabic ? '1. رفع صورة من جهازك' : '1. Upload Photo from Device'}
+            </div>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="p-5 border-2 border-dashed border-[#DDDAD3] dark:border-[#2C2824] hover:border-[#7A5818] dark:hover:border-[#D4B26E] bg-black/5 dark:bg-white/5 rounded-xl text-center cursor-pointer transition-colors space-y-2"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#7A5818]/10 dark:bg-[#D4B26E]/10 text-[#7A5818] dark:text-[#D4B26E] flex items-center justify-center mx-auto text-lg">
+                <UploadOutlined />
+              </div>
+              <div className="text-xs font-semibold text-[#1B1915] dark:text-[#EFE9DD]">
+                {isArabic ? 'انقر لاختيار ملف من جهازك' : 'Click to browse image file'}
+              </div>
+              <div className="text-[11px] text-[#5A5348] dark:text-[#9A9183]">
+                PNG, JPG, WebP {isArabic ? 'حتى 10 ميغابايت (يتم ضغطها وتوسيطها تلقائياً)' : 'up to 10MB (auto-cropped to square)'}
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Choose from Curated Preset Avatars */}
+          <div className="space-y-2">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#5A5348] dark:text-[#9A9183]">
+              {isArabic ? '2. اختيار من النماذج الاحترافية' : '2. Choose from Curated Avatars'}
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {PRESET_AVATARS.map((url, idx) => {
+                const isSelected = (user?.avatarUrl || user?.photoURL) === url;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={isUploadingAvatar}
+                    onClick={() => saveAvatar(url)}
+                    className={`relative p-1 rounded-full transition-all group outline-none ${
+                      isSelected
+                        ? 'ring-2 ring-[#7A5818] dark:ring-[#D4B26E] scale-105'
+                        : 'hover:scale-105 opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    <Avatar
+                      size={54}
+                      src={url}
+                      className="border border-[#DDDAD3] dark:border-[#2C2824] shadow-xs"
+                    />
+                    {isSelected && (
+                      <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] text-[10px] flex items-center justify-center font-bold">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Section 3: Direct Web Image URL */}
+          <div className="space-y-2 pt-2 border-t border-[#DDDAD3]/60 dark:border-[#2C2824]/60">
+            <div className="text-xs font-bold uppercase tracking-wider text-[#5A5348] dark:text-[#9A9183]">
+              {isArabic ? '3. أو أدخل رابط صورة مباشر' : '3. Or Paste Direct Image URL'}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                prefix={<LinkOutlined className="text-[#5A5348] dark:text-[#9A9183]" />}
+                placeholder="https://example.com/avatar.jpg"
+                value={avatarUrlInput}
+                onChange={(e) => setAvatarUrlInput(e.target.value)}
+                onPressEnter={handleApplyCustomUrl}
+                className={STYLES.inputBase}
+              />
+              <Button
+                type="primary"
+                loading={isUploadingAvatar}
+                onClick={handleApplyCustomUrl}
+                className={STYLES.primaryBtn}
+              >
+                {isArabic ? 'تطبيق' : 'Apply'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-between pt-3 border-t border-[#DDDAD3]/60 dark:border-[#2C2824]/60">
+            {(user?.avatarUrl || user?.photoURL) ? (
+              <Button
+                type="text"
+                danger
+                loading={isUploadingAvatar}
+                onClick={() => saveAvatar(null)}
+                className="text-xs"
+              >
+                {isArabic ? 'إزالة الصورة واستعادة الحرف الأولي' : 'Remove Avatar (Use Initials)'}
+              </Button>
+            ) : (
+              <span className="text-xs text-[#5A5348] dark:text-[#9A9183]">
+                {isArabic ? 'الحساب يستخدم حالياً الأحرف الأولى' : 'Using default initials'}
+              </span>
+            )}
+            <Button
+              size="middle"
+              onClick={() => setIsAvatarModalOpen(false)}
+              className={STYLES.secondaryBtn}
+            >
+              {isArabic ? 'إغلاق' : 'Close'}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>

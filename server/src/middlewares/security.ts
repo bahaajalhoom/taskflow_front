@@ -132,6 +132,25 @@ export const authRateLimiter = rateLimit({
 });
 
 /**
+ * Password reset rate limiter: 5 attempts per 15 minutes per IP to prevent spamming and brute-forcing.
+ */
+export const passwordResetRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  statusCode: 429,
+  handler: (req: Request, res: Response) => {
+    res.status(429).json({
+      error: 'Too many password reset requests. Please wait 15 minutes before trying again.',
+      code: 'RESET_RATE_LIMIT_EXCEEDED',
+      requestId: req.headers['x-request-id'] || 'unknown',
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+
+/**
  * Registration Rate Limiter Configuration Constants
  */
 export const REGISTRATION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes window

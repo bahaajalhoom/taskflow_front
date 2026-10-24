@@ -400,10 +400,31 @@ export const DataService = {
   // ==========================================
   // ACCOUNT & CREDENTIALS
   // ==========================================
-  async updateUserProfile(displayName: string): Promise<{ user: UserProfile }> {
+  async updateUserProfile(displayName: string, avatarUrl?: string | null): Promise<{ user: UserProfile }> {
     return apiRequest<{ user: UserProfile }>('/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ displayName }),
+      body: JSON.stringify({ displayName, avatarUrl }),
+    });
+  },
+
+  async requestPasswordReset(email: string): Promise<{ status: string; message: string; previewUrl?: string }> {
+    return apiRequest<{ status: string; message: string; previewUrl?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  async verifyResetToken(token: string): Promise<{ status: string; valid: boolean; email: string; displayName: string }> {
+    return apiRequest<{ status: string; valid: boolean; email: string; displayName: string }>(
+      `/auth/verify-reset-token/${encodeURIComponent(token)}`,
+      { method: 'GET' }
+    );
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ status: string; message: string }> {
+    return apiRequest<{ status: string; message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
     });
   },
 

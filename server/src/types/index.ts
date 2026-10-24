@@ -11,6 +11,8 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: UserRole;
+  avatarUrl?: string;
+  photoURL?: string;
   createdAt: string;
 }
 
@@ -20,6 +22,8 @@ export interface ProjectMemberDetail {
   email: string;
   displayName: string;
   role: UserRole;
+  avatarUrl?: string;
+  photoURL?: string;
   joinedAt?: string;
   customPermissions?: CustomPermissions | null;
 }

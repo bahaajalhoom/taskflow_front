@@ -16,6 +16,8 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role?: UserRole;
+  avatarUrl?: string;
+  photoURL?: string;
   createdAt: string;
 }
 
@@ -25,6 +27,8 @@ export interface ProjectMemberDetail {
   email: string;
   displayName: string;
   role: 'owner' | 'maintainer' | 'member' | 'trainee' | 'viewer' | 'custom' | string;
+  avatarUrl?: string;
+  photoURL?: string;
   domainTitle?: string;
   joinedAt?: string;
   customPermissions?: CustomPermissions | null;
@@ -60,6 +64,8 @@ export interface AdminUserRecord {
   email: string;
   displayName: string;
   role: string;
+  avatarUrl?: string;
+  photoURL?: string;
   createdAt: string;
   projectsCount: number;
   tasksCount: number;
