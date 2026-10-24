@@ -31,8 +31,27 @@ router.delete('/account', authenticate, deleteAccount);
 
 // Enterprise Password Reset Endpoints
 router.post('/forgot-password', passwordResetRateLimiter, forgotPassword);
+router.get('/forgot-password', (req, res) => {
+  if (req.accepts('html')) {
+    return res.redirect('/forgot-password');
+  }
+  return res.json({
+    status: 'active',
+    endpoint: '/api/auth/forgot-password',
+    method: 'POST',
+    description: 'Enterprise Password Reset Dispatcher. Send a POST request with { "email": "user@example.com" } to dispatch an official reset link.',
+    webPage: '/forgot-password',
+  });
+});
 router.get('/verify-reset-token/:token', verifyResetToken);
 router.post('/reset-password', passwordResetRateLimiter, resetPassword);
+router.get('/reset-password', (req, res) => {
+  const token = req.query.token;
+  if (token) {
+    return res.redirect(`/reset-password?token=${encodeURIComponent(String(token))}`);
+  }
+  return res.redirect('/forgot-password');
+});
 
 if (process.env.NODE_ENV !== 'production') {
   router.post('/reset-limiter', (_req, res) => {

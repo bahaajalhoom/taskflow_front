@@ -107,6 +107,9 @@ app.get('/', (req, res) => {
         register: 'POST /api/auth/register',
         login: 'POST /api/auth/login',
         me: 'GET /api/auth/me',
+        forgotPassword: 'POST /api/auth/forgot-password',
+        verifyResetToken: 'GET /api/auth/verify-reset-token/:token',
+        resetPassword: 'POST /api/auth/reset-password',
       },
       projects: {
         list: 'GET /api/projects',
