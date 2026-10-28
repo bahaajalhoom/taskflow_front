@@ -1,0 +1,16 @@
+# https://taskflow.apps.taqat.academy
+
+> TaskFlow is an enterprise-grade project management and sprint orchestration platform engineered for high-throughput software teams. Built with a pure relational SQL engine, kinetic Kanban physics, and granular Role-Based Access Control (RBAC).
+
+## Documentation
+- [Platform Home](https://taskflow.apps.taqat.academy/): Main overview, interactive sprint demo, and system metrics.
+- [About Us](https://taskflow.apps.taqat.academy/about): Mission, engineering philosophy, and architectural standards.
+- [Privacy Policy](https://taskflow.apps.taqat.academy/privacy): Data protection, encryption, session guarantees, and user rights.
+- [API Reference](https://taskflow.apps.taqat.academy/api-docs): Complete RESTful API endpoints and data contracts.
+
+## Core Capabilities
+- **Relational SQL Durability**: Backed by SQLite WAL mode with zero-loss transactional consistency.
+- **Kinetic Physics Kanban**: Tactile drag-and-drop workflow with directional tilt, mass simulation, and momentum.
+- **Granular RBAC Governance**: Role-based access control with custom granular permission flags.
+- **Real-Time Collaboration**: Native real-time team chat and custom WebRTC video conference capabilities.
+- **Bilingual English/Arabic Interface**: Comprehensive bidirectional (LTR/RTL) optical typography.

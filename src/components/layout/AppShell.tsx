@@ -111,7 +111,7 @@ export default function AppShell({ children }: AppShellProps) {
     pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
 
   if (isAuthPage) {
-    return <div className="min-h-dvh w-full bg-[var(--bg)] text-[var(--text)]">{children}</div>;
+    return <section className="min-h-dvh w-full bg-[var(--bg)] text-[var(--text)]">{children}</section>;
   }
 
   const isPublicPage = !user || CONFIG.publicRoutes.includes(pathname as any);
@@ -126,9 +126,9 @@ export default function AppShell({ children }: AppShellProps) {
       />
 
       {isPublicPage ? (
-        <main className={`${STYLES.publicMain} page-transition-enter`} key={pathname}>
+        <section className={`${STYLES.publicMain} page-transition-enter`} key={pathname}>
           {children}
-        </main>
+        </section>
       ) : (
         <div className={STYLES.appBody}>
           {/* السايد بار بالديسكتوب */}
@@ -166,9 +166,9 @@ export default function AppShell({ children }: AppShellProps) {
           </Drawer>
 
           {/* منطقة المحتوى الرئيسي */}
-          <main className={`${STYLES.appMain} page-transition-enter`} key={pathname}>
+          <section className={`${STYLES.appMain} page-transition-enter`} key={pathname}>
             {children}
-          </main>
+          </section>
         </div>
       )}
 

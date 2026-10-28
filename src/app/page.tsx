@@ -338,7 +338,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className={STYLES.container}>
+    <article className={STYLES.container}>
       {/* 1. PRECISION HERO & INTERACTIVE WORKBENCH */}
       <section className="pt-8 sm:pt-14 pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
@@ -1184,18 +1184,156 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. ARCHITECTURAL MINIMALIST FOOTER */}
-      <footer className="py-6 px-4 border-t border-[#DDDAD3] dark:border-[#2C2824] text-center text-[11px] text-[#5A5348] dark:text-[#B5AC9C] font-mono">
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <span>TaskFlow Enterprise Runtime</span>
-          <span>&bull;</span>
-          <span>SQLite WAL Persistence</span>
-          <span>&bull;</span>
-          <span>Strict RBAC Governance</span>
-          <span>&bull;</span>
-          <span className="tabular-nums">v3.0.0</span>
+      {/* 5. EXPANDED PLATFORM CAPABILITIES & FACTUAL KNOWLEDGE (GEO & TECHNICAL SEO) */}
+      <section
+        aria-labelledby="capabilities-heading"
+        className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-[#DDDAD3] dark:border-[#2C2824]"
+      >
+        <div className="max-w-4xl mx-auto text-start space-y-6">
+          <div className="space-y-2">
+            <span className="inline-block px-2.5 py-1 rounded text-xs font-mono font-semibold bg-[#7A5818]/10 text-[#7A5818] dark:text-[#D4B26E] border border-[#7A5818]/25">
+              {isArabic ? 'المعمارية التقنية والقدرات' : 'Technical Architecture & Systems'}
+            </span>
+            <h2
+              id="capabilities-heading"
+              className="text-2xl sm:text-3xl font-black text-[#1B1915] dark:text-[#EFE9DD] font-display tracking-tight"
+            >
+              {isArabic ? 'القدرات الهندسية ومحاور النظام الأساسية' : 'Platform Capabilities & Core Features'}
+            </h2>
+            <p className="text-sm text-[#5A5348] dark:text-[#B5AC9C] leading-relaxed">
+              {isArabic
+                ? 'توفر تاسك فلو بنية تحتية متكاملة مصممة خصيصاً للتخلص من التأخير والتعقيد المعتاد في أدوات إدارة المشاريع السحابية. نستعرض هنا التفاصيل المعمارية الدقيقة والمزايا الجوهرية للنظام.'
+                : 'TaskFlow provides mission-critical infrastructure built to eliminate the bloat, latency, and distractions of generic SaaS trackers. Below are the definitive architectural specifications and operational guarantees.'}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+            <div className="p-6 rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] space-y-3">
+              <h3 className="text-base font-bold text-[#1B1915] dark:text-[#EFE9DD] font-display">
+                {isArabic ? 'متانة SQL المطلقة واستقلالية التخزين' : 'Pure Relational SQL Durability'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                {isArabic
+                  ? 'يعتمد النظام على محرك SQLite مدمج يعمل بوضع Write-Ahead Logging (WAL) مع معاملات ذرية كاملة (ACID)، مما يحقق سرعة استجابة تقاس بأجزاء من الثانية وحماية فورية من فقدان البيانات دون أي اعتماد على خدمات طرف ثالث.'
+                  : 'Engineered with embedded SQLite in Write-Ahead Logging (WAL) mode delivering sub-millisecond query responses, ACID transactional durability, and complete independence from third-party cloud lock-in.'}
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] space-y-3">
+              <h3 className="text-base font-bold text-[#1B1915] dark:text-[#EFE9DD] font-display">
+                {isArabic ? 'فيزياء تفاعلية حركية للكانبان' : 'Kinetic Physics Kanban Engine'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                {isArabic
+                  ? 'تتبع دقيق لحركة الفأرة أو اللمس بزمن استجابة 60 إطاراً في الثانية مع محاكاة واقعية لكتلة البطاقة وزاوية ميلانها، ونظام ارتداد نوابض سلس يمنح شعوراً مكانياً ملموساً للمهام.'
+                  : 'Native 60fps gesture physics controller tracking drag velocity, directional tilt angles, and spring damping for tactile spatial ergonomics without Cumulative Layout Shift (CLS = 0).'}
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] space-y-3">
+              <h3 className="text-base font-bold text-[#1B1915] dark:text-[#EFE9DD] font-display">
+                {isArabic ? 'حوكمة الصلاحيات والتشفير المؤسسي' : 'Granular RBAC & Cryptographic Security'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                {isArabic
+                  ? 'مصفوفة صلاحيات تفصيلية تميز بين المالك والمشرف والمشاهد وأدوار مخصصة محددة بالأعلام. استعادة كلمات المرور مشفرة برموز 32 بايت مشفرة بـ SHA-256 مع مدة صلاحية ساعة واحدة.'
+                  : 'Role-Based Access Control matrix with granular capability flags (createTasks, editTasks, deleteTasks, manageMembers). Password resets use 32-byte cryptographic entropy tokens hashed at rest via SHA-256.'}
+              </p>
+            </div>
+
+            <div className="p-6 rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] space-y-3">
+              <h3 className="text-base font-bold text-[#1B1915] dark:text-[#EFE9DD] font-display">
+                {isArabic ? 'غرف اجتماعات WebRTC مدمجة' : 'Native WebRTC Video & Audio Rooms'}
+              </h3>
+              <p className="text-xs sm:text-sm text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                {isArabic
+                  ? 'غرف اتصال مرئي وصوتي مباشر بتقنية P2P المشفرة مدمجة داخل بيئة المشروع، تدعم مشاركة الشاشة وتسجيل الجلسات محلياً بدون إرسال الفيديو لخوادم خارجية.'
+                  : 'Direct peer-to-peer WebRTC video conferencing rooms built right into project workspaces, featuring native studio screen-recording compositors and encrypted local streams.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Factual Q&A Section */}
+          <div className="pt-8 border-t border-[#DDDAD3] dark:border-[#2C2824] space-y-4">
+            <h3 className="text-lg font-bold text-[#1B1915] dark:text-[#EFE9DD] font-display">
+              {isArabic ? 'الأسئلة الشائعة والمعلومات الموثقة' : 'Frequently Asked Questions & Domain Insights'}
+            </h3>
+
+            <div className="space-y-4 text-xs sm:text-sm">
+              <div className="p-4 rounded-lg bg-[#EDECE8]/40 dark:bg-[#141211] border border-[#DDDAD3] dark:border-[#2C2824]">
+                <h4 className="font-bold text-[#1B1915] dark:text-[#EFE9DD] mb-1">
+                  {isArabic ? 'كيف تضمن المنصة استمرار عمل البيانات عند انقطاع الاتصال؟' : 'How does TaskFlow guarantee zero-loss state durability?'}
+                </h4>
+                <p className="text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                  {isArabic
+                    ? 'تعتمد المنصة على التخزين المحلي الآمن مع التزامن التلقائي عند عودة الاتصال، بالإضافة إلى وضع WAL في SQLite الذي يضمن كتابة السجلات على القرص فورياً قبل تأكيد العملية للمستخدم.'
+                    : 'The client layer utilizes resilient state caching coupled with optimistic UI updates. When communicating with the backend, SQLite Write-Ahead Logging commits transactions to persistent disk storage atomically.'}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-[#EDECE8]/40 dark:bg-[#141211] border border-[#DDDAD3] dark:border-[#2C2824]">
+                <h4 className="font-bold text-[#1B1915] dark:text-[#EFE9DD] mb-1">
+                  {isArabic ? 'هل المنصة متوافقة مع متطلبات الخصوصية والأمان العالمية؟' : 'Is TaskFlow compliant with enterprise privacy and security directives?'}
+                </h4>
+                <p className="text-[#5A5348] dark:text-[#9A9183] leading-relaxed">
+                  {isArabic
+                    ? 'نعم، المنصة تطبق ترويسات أمان متقدمة تشمل Content-Security-Policy و X-Frame-Options لمنع هجمات Clickjacking، مع تشفير كلمات المرور باستخدام bcrypt وحماية ضد هجمات استكشاف الحسابات.'
+                    : 'Yes. The application is fortified with strict HTTP headers including Content-Security-Policy (CSP), X-Frame-Options: DENY, X-Content-Type-Options: nosniff, and Referrer-Policy, accompanied by rate-limited authentication boundaries.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. ARCHITECTURAL FOOTER WITH CANONICAL & COMPLIANCE LINKS */}
+      <footer className="py-10 px-4 sm:px-6 lg:px-8 border-t border-[#DDDAD3] dark:border-[#2C2824] bg-white/50 dark:bg-[#11100E]/50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <div className="flex items-center gap-2">
+              <span className="font-black text-sm text-[#1B1915] dark:text-[#EFE9DD] font-display">
+                TaskFlow Enterprise
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#7A5818]/10 text-[#7A5818] dark:text-[#D4B26E]">
+                v3.2.0
+              </span>
+            </div>
+            <p className="text-xs text-[#5A5348] dark:text-[#9A9183]">
+              {isArabic
+                ? 'منصة هندسية حديثة لإدارة المشاريع وسرعة الإنجاز بأعلى المعايير.'
+                : 'Mission-critical engineering platform for sprint and task execution.'}
+            </p>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="flex flex-wrap items-center justify-center gap-6 text-xs text-[#5A5348] dark:text-[#B5AC9C]">
+            <Link href="/about" className="hover:text-[#1B1915] dark:hover:text-[#EFE9DD] transition-colors">
+              {isArabic ? 'من نحن' : 'About Us'}
+            </Link>
+            <Link href="/privacy" className="hover:text-[#1B1915] dark:hover:text-[#EFE9DD] transition-colors">
+              {isArabic ? 'سياسة الخصوصية' : 'Privacy Policy'}
+            </Link>
+            <Link href="/login" className="hover:text-[#1B1915] dark:hover:text-[#EFE9DD] transition-colors">
+              {isArabic ? 'تسجيل الدخول' : 'Sign In'}
+            </Link>
+            <Link href="/register" className="hover:text-[#1B1915] dark:hover:text-[#EFE9DD] transition-colors">
+              {isArabic ? 'حساب جديد' : 'Register'}
+            </Link>
+            <Link href="/forgot-password" className="hover:text-[#1B1915] dark:hover:text-[#EFE9DD] transition-colors">
+              {isArabic ? 'استعادة كلمة المرور' : 'Reset Password'}
+            </Link>
+          </nav>
+        </div>
+
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-[#DDDAD3]/50 dark:border-[#2C2824]/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-[#7A7265] dark:text-[#7A7265] font-mono">
+          <span>
+            © {new Date().getFullYear()} TaskFlow Enterprise. {isArabic ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+          </span>
+          <span>
+            Canonical Domain: <a href="https://taskflow.apps.taqat.academy/" className="underline hover:text-[#D4B26E]">https://taskflow.apps.taqat.academy/</a>
+          </span>
         </div>
       </footer>
-    </div>
+    </article>
   );
 }

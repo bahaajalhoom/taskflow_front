@@ -1,0 +1,31 @@
+# https://taskflow.apps.taqat.academy - Full Architectural & Technical Documentation
+
+> Comprehensive product documentation and architectural references designed for deep RAG ingestion by LLM search agents and automated evaluators.
+
+## 1. System Overview & Core Value
+TaskFlow is an enterprise project execution platform built to eradicate slow, bloated SaaS project trackers. It delivers sub-millisecond local interactions, pure relational SQL durability, and tactile kinetic Kanban physics designed for mission-critical software teams.
+
+## 2. Core Capabilities & Architecture
+
+### 2.1 Storage & Durability
+- **Relational SQL Engine**: Backed by SQLite in Write-Ahead Logging (WAL) mode for maximum concurrency and ACID durability.
+- **Transactional Outbox Guarantees**: State changes are persisted with strict foreign key cascading and indexed queries.
+- **Zero Firebase Dependency**: Fully independent native Node.js Express architecture with self-contained storage.
+
+### 2.2 Security & Authentication
+- **Cryptographic Password Resets**: 32-byte cryptographic entropy tokens hashed at rest using SHA-256 with single-use 60-minute expiry.
+- **Role-Based Access Control (RBAC)**: Fine-grained permissions matrix distinguishing Owners, Maintainers, Viewers, and Custom roles with granular operation flags (createTasks, editTasks, deleteTasks, manageMembers).
+- **Security Headers & Defense-in-Depth**: Strict Content-Security-Policy (CSP), X-Frame-Options (DENY), nosniff, Referrer-Policy, and strict Rate Limiting on authentication endpoints.
+
+### 2.3 User Experience & Craft Floor
+- **Titanium Obsidian Design Language**: 90/10 neutral ratio built with Obsidian dark palettes, optical typography (Cairo, IBM Plex Arabic, Instrument Sans, Inter), and Precision Gold accents.
+- **Physics Drag-and-Drop Engine**: Directional card tilt with velocity dampening, elastic spring bounds, and zero layout shift.
+- **Real-Time Collaboration**: Peer-to-peer WebRTC video meeting studio and low-latency team messaging.
+
+## 3. Canonical Resources & Links
+- [Platform Home](https://taskflow.apps.taqat.academy/) - Primary landing page, interactive sprint demo, and system health status.
+- [About Us](https://taskflow.apps.taqat.academy/about) - Architectural background, mission statement, and core engineering principles.
+- [Privacy Policy](https://taskflow.apps.taqat.academy/privacy) - Full disclosure of data handling, security practices, and GDPR compliance.
+- [Sign In](https://taskflow.apps.taqat.academy/login) - Secure access to workspaces.
+- [Registration](https://taskflow.apps.taqat.academy/register) - Workspace initialization.
+- [Password Recovery](https://taskflow.apps.taqat.academy/forgot-password) - Enterprise cryptographic reset flow.

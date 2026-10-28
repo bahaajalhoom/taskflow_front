@@ -7,11 +7,15 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import AntdProvider from '@/components/providers/AntdProvider';
 import AppShell from '@/components/layout/AppShell';
 import TopProgressBar from '@/components/ui/TopProgressBar';
+import JsonLd from '@/components/seo/JsonLd';
 
 const siteUrl = 'https://taskflow.apps.taqat.academy';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  alternates: {
+    canonical: 'https://taskflow.apps.taqat.academy/',
+  },
   title: {
     default: 'TaskFlow | منصة إدارة المشاريع والمهام الذكية',
     template: '%s | TaskFlow',
@@ -87,6 +91,8 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
+        <link key="canonical" rel="canonical" href="https://taskflow.apps.taqat.academy/" />
+        <JsonLd />
         <link key="font-preconnect-1" rel="preconnect" href="https://fonts.googleapis.com" />
         <link key="font-preconnect-2" rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -110,7 +116,9 @@ export default function RootLayout({
             <AntdProvider>
               <AuthProvider>
                 <AppShell>
-                  {children}
+                  <main id="main-content" className="flex-1 w-full max-w-7xl mx-auto flex flex-col">
+                    {children}
+                  </main>
                 </AppShell>
               </AuthProvider>
             </AntdProvider>
