@@ -84,9 +84,9 @@ const STYLES = {
     'text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-[#1B1915] dark:text-[#EFE9DD] leading-[1.14] font-display',
   heroSubtitle: 'text-sm sm:text-base text-[#5A5348] dark:!text-[#B5AC9C] leading-relaxed font-normal',
   primaryActionButton:
-    'tactile-btn !bg-[#7A5818] dark:!bg-[#D4B26E] hover:!bg-[#5e4310] dark:hover:!bg-[#e5c583] !border-[#7A5818] dark:!border-[#D4B26E] font-bold px-6 h-11 rounded-lg text-sm !text-white dark:!text-[#1A1408] shadow-xs',
+    'primary-cta tactile-btn !bg-[#7A5818] dark:!bg-[#D4B26E] hover:!bg-[#5e4310] dark:hover:!bg-[#e5c583] !border-[#7A5818] dark:!border-[#D4B26E] font-bold px-7 h-12 rounded-xl text-sm !text-white dark:!text-[#1A1408] shadow-md transition-all active:scale-[0.98] inline-flex items-center justify-center gap-2 min-h-[44px]',
   secondaryActionButton:
-    'tactile-btn border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD] hover:text-[#7A5818] dark:hover:text-[#D4B26E] font-semibold px-5 h-11 rounded-lg text-sm bg-white dark:bg-[#141211]',
+    'tactile-btn border-[#DDDAD3] dark:border-[#2C2824] text-[#1B1915] dark:text-[#EFE9DD] hover:text-[#7A5818] dark:hover:text-[#D4B26E] font-semibold px-6 h-12 rounded-xl text-sm bg-white dark:bg-[#141211] shadow-xs active:scale-[0.98] min-h-[44px]',
   tactileCard:
     'rounded-xl border border-[#DDDAD3] dark:border-[#2C2824] bg-white dark:bg-[#141211] shadow-tactile-card dark:shadow-tactile-card-dark overflow-hidden text-start',
   badgePill:
@@ -401,7 +401,7 @@ export default function HomePage() {
                       icon={<ArrowRightOutlined className="rtl:-scale-x-100" />}
                       className={STYLES.primaryActionButton}
                     >
-                      {isArabic ? 'ابدأ مساحة العمل' : 'Start Workspace'}
+                      {isArabic ? 'ابدأ الآن مجاناً' : 'Start Free Workspace'}
                     </Button>
                   </Link>
                   <Link href="/login">

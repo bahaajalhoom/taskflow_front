@@ -43,9 +43,9 @@ export default function AuditHeader() {
           </Link>
           <Link
             href="/register"
-            className="px-3 py-1.5 rounded-md bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] font-semibold text-xs hover:bg-[#5e4310] dark:hover:bg-[#e5c583] transition-colors"
+            className="px-4 py-2.5 rounded-xl bg-[#7A5818] dark:bg-[#D4B26E] text-white dark:text-[#1A1408] font-bold text-xs sm:text-sm hover:bg-[#5e4310] dark:hover:bg-[#e5c583] transition-all min-h-[44px] inline-flex items-center justify-center active:scale-[0.98] shadow-xs"
           >
-            {isArabic ? 'ابدأ الآن' : 'Get Started'}
+            {isArabic ? 'ابدأ الآن مجاناً' : 'Get Started Free'}
           </Link>
         </nav>
       </div>

@@ -174,6 +174,14 @@ export default function Navbar({
             <Link href="/" className="flex items-center hover:opacity-90 transition-opacity">
               <Logo size="small" />
             </Link>
+            <nav className="hidden sm:flex items-center gap-4 text-xs font-medium text-[var(--text-2)] ms-4">
+              <Link href="/about" className="hover:text-[var(--text)] transition-colors">
+                {isArabic ? 'من نحن' : 'About'}
+              </Link>
+              <Link href="/privacy" className="hover:text-[var(--text)] transition-colors">
+                {isArabic ? 'الخصوصية' : 'Privacy'}
+              </Link>
+            </nav>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
