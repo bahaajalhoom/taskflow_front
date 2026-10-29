@@ -32,8 +32,7 @@ const CRAWLER_PATTERNS = [
 ];
 
 export function middleware(request: NextRequest) {
-  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
-  const isCrawler = CRAWLER_PATTERNS.some((pattern) => userAgent.includes(pattern));
+  const { pathname, search } = request.nextUrl;
 
   // Common security and performance headers
   const securityHeaders = {
@@ -46,6 +45,33 @@ export function middleware(request: NextRequest) {
     'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
   };
 
+  // Enforce Authentication Barrier on private admin and internal data endpoints (Issues 1-5)
+  const isProtectedAdminPath =
+    pathname.startsWith('/api/admin') ||
+    pathname === '/admin/overview' ||
+    pathname.startsWith('/admin/overview/') ||
+    pathname === '/admin/users' ||
+    pathname.startsWith('/admin/users/') ||
+    pathname === '/admin/projects' ||
+    pathname.startsWith('/admin/projects/') ||
+    pathname === '/admin/tasks' ||
+    pathname.startsWith('/admin/tasks/');
+
+  if (isProtectedAdminPath) {
+    if (!request.headers.get('authorization')) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: securityHeaders,
+        }
+      );
+    }
+  }
+
+  const userAgent = (request.headers.get('user-agent') || '').toLowerCase();
+  const isCrawler = CRAWLER_PATTERNS.some((pattern) => userAgent.includes(pattern));
+
   if (!isCrawler) {
     const response = NextResponse.next();
     for (const [key, val] of Object.entries(securityHeaders)) {
@@ -53,8 +79,6 @@ export function middleware(request: NextRequest) {
     }
     return response;
   }
-
-  const { pathname, search } = request.nextUrl;
 
   // Never intercept static assets, images, API routes, or Next.js internals
   if (

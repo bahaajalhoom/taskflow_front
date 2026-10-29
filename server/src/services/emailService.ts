@@ -15,15 +15,15 @@ export function getFrontendUrl(): string {
   if (process.env.FRONTEND_URL) {
     return process.env.FRONTEND_URL.replace(/\/+$/, '');
   }
-  const origins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-  const prodOrigin = origins.find(
-    (o) => o.includes('taskflow') || o.includes('taqat.academy')
-  );
-  if (prodOrigin) {
-    return prodOrigin.trim().replace(/\/+$/, '');
-  }
   if (process.env.NODE_ENV === 'production') {
-    return 'https://taskflow-taqat.apps.taqat.academy';
+    return 'https://taskflow.apps.taqat.academy';
+  }
+  const origins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+  const frontOrigin = origins.find(
+    (o) => o.includes('taskflow.apps.taqat.academy')
+  );
+  if (frontOrigin) {
+    return frontOrigin.trim().replace(/\/+$/, '');
   }
   return 'http://localhost:3000';
 }

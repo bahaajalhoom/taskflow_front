@@ -7,10 +7,13 @@ import {
   getAdminProjects,
   getAdminTasks,
 } from '../controllers/adminController.js';
+import { authenticate } from '../middlewares/auth.js';
 
 const router = Router();
 
-// مسارات لوحة الإدارة مفتوحة ومتاحة لأي زائر مباشرة وفق رغبة المطور
+// Enforce strict authentication barrier across all administrative API routes
+router.use(authenticate);
+
 router.get('/overview', getAdminOverview);
 router.get('/users', getAdminUsers);
 router.post('/users/:userId/password', adminResetUserPassword);

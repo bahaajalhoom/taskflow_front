@@ -139,11 +139,11 @@ app.get('/', (req, res) => {
 });
 
 // 7. Route Registration
-// Automatic redirect if a user opens a frontend page route directly on the backend port (5001)
+// Automatic redirect if a user opens a frontend page route directly on the backend port (5001) or backend domain
 app.get(['/forgot-password', '/reset-password', '/login', '/register', '/settings', '/dashboard'], (req, res) => {
   const host = req.get('host') || '';
   const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
-  const frontendBase = isLocal ? 'http://localhost:3000' : (process.env.FRONTEND_URL || 'https://taskflow-taqat.apps.taqat.academy').replace(/\/$/, '');
+  const frontendBase = isLocal ? 'http://localhost:3000' : (process.env.FRONTEND_URL || 'https://taskflow.apps.taqat.academy').replace(/\/$/, '');
   return res.redirect(302, `${frontendBase}${req.originalUrl}`);
 });
 
